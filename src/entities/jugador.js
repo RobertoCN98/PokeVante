@@ -28,6 +28,7 @@ export default class Jugador extends Phaser.Physics.Arcade.Sprite {
     }
 
     update() {
+        // console.log("Jugador update running");
         if (this.moving) return;
 
         let targetX = this.x;
@@ -35,16 +36,17 @@ export default class Jugador extends Phaser.Physics.Arcade.Sprite {
         let newDirection = this.direction;
 
         // Detectar tecla presionada y calcular nueva posición
-        if (Phaser.Input.Keyboard.JustDown(this.keys.left)) {
+        // Detectar tecla presionada y calcular nueva posición
+        if (this.keys.left.isDown) {
             targetX -= this.cellSize;
             newDirection = 3; // izquierda
-        } else if (Phaser.Input.Keyboard.JustDown(this.keys.right)) {
+        } else if (this.keys.right.isDown) {
             targetX += this.cellSize;
             newDirection = 1; // derecha
-        } else if (Phaser.Input.Keyboard.JustDown(this.keys.up)) {
+        } else if (this.keys.up.isDown) {
             targetY -= this.cellSize;
             newDirection = 2; // arriba
-        } else if (Phaser.Input.Keyboard.JustDown(this.keys.down)) {
+        } else if (this.keys.down.isDown) {
             targetY += this.cellSize;
             newDirection = 0; // abajo
         } else {
@@ -73,13 +75,18 @@ export default class Jugador extends Phaser.Physics.Arcade.Sprite {
             duration: 150, // velocidad del movimiento
             onComplete: () => {
                 this.moving = false;
-                
+
                 // Verificar tipo de celda al llegar
                 const cellType = this.scene.getCellType(this.x, this.y);
+                const gridX = Math.floor(this.x / 32);
+                const gridY = Math.floor(this.y / 32);
+                console.log(`Llegada a [${gridX}, ${gridY}], Tipo: ${cellType}`);
+
                 if (cellType === 2) {
                     console.log("🏥 Entraste al hospital!");
                 } else if (cellType === 3) {
                     console.log("💪 Entraste al gimnasio!");
+                    this.scene.scene.start("Gimnasio");
                 }
             },
         });

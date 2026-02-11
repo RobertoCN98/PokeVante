@@ -1,6 +1,8 @@
 import Phaser from "phaser";
 import Pueblo from "./scenes/pueblo.js";
 
+import Gimnasio from "./scenes/gimnasio.js";
+
 const config = {
     type: Phaser.AUTO,
     width: 640,  // ancho del canvas
@@ -9,10 +11,10 @@ const config = {
     physics: {
         default: "arcade",
         arcade: {
-            debug: false,
+            debug: true,
         },
     },
-    scene: [Pueblo], // agregamos la escena inicial
+    scene: [Pueblo, Gimnasio], // agregamos la escena inicial y el gimnasio
 };
 
 const game = new Phaser.Game(config);

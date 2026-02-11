@@ -11,7 +11,7 @@ export default class Pueblo extends Phaser.Scene {
        preload() {
               console.log("PRELOAD PUEBLO");
               this.load.image("mapaPueblo", "assets/map/mapaPrincipal.png");
-              
+
               // Cargar sprite sheet del jugador
               this.load.spritesheet("jugador", "assets/sprites/jugador_sprite.png", {
                      frameWidth: 32,
@@ -19,32 +19,36 @@ export default class Pueblo extends Phaser.Scene {
               });
        }
 
-       create() {
-       console.log("CREATE PUEBLO");
+       create(data) {
+              console.log("CREATE PUEBLO");
 
-       // Añadir la imagen del mapa
-       const mapa = this.add.image(0, 0, "mapaPueblo").setOrigin(0, 0);
+              // Añadir la imagen del mapa
+              const mapa = this.add.image(0, 0, "mapaPueblo").setOrigin(0, 0);
 
-       console.log(`Tamaño del mapa: ${mapa.width}x${mapa.height}`);
+              console.log(`Tamaño del mapa: ${mapa.width}x${mapa.height}`);
 
-       // Inicializar el grid basado en el tamaño del mapa
-       this.initializeGrid(mapa.width, mapa.height);
+              // Inicializar el grid basado en el tamaño del mapa
+              this.initializeGrid(mapa.width, mapa.height);
 
-       // Dibujar el grid de debug
-       this.drawGridDebug();
+              // Dibujar el grid de debug
+              this.drawGridDebug();
 
-       console.log(`Grid creado: ${this.mapGrid[0].length} columnas x ${this.mapGrid.length} filas`);
+              console.log(`Grid creado: ${this.mapGrid[0].length} columnas x ${this.mapGrid.length} filas`);
 
-       // Crear el jugador en una posición inicial
-       this.jugador = new Jugador(this, 32, 32);
+              // Crear el jugador
+              // Si pasamos datos (x, y), usarlos. Si no, posición por defecto (32, 32)
+              const startX = (data && data.x) ? data.x : 32;
+              const startY = (data && data.y) ? data.y : 32;
 
-       // NUEVO: Configurar la cámara para seguir al jugador
-       this.cameras.main.startFollow(this.jugador);
-       this.cameras.main.setBounds(0, 0, mapa.width, mapa.height);
-       
-       // Opcional: suavizar el movimiento de la cámara
-       this.cameras.main.setLerp(0.1, 0.1);
-}
+              this.jugador = new Jugador(this, startX, startY);
+
+              // NUEVO: Configurar la cámara para seguir al jugador
+              this.cameras.main.startFollow(this.jugador);
+              this.cameras.main.setBounds(0, 0, mapa.width, mapa.height);
+
+              // Opcional: suavizar el movimiento de la cámara
+              this.cameras.main.setLerp(0.1, 0.1);
+       }
 
        update() {
               // Actualizar el jugador cada frame
@@ -88,7 +92,13 @@ export default class Pueblo extends Phaser.Scene {
               //this.setGridArea(20, 8, 6, 5, 2);
 
               // Zonas de batalla
-              this.setGridArea(3, 3, 11, 4, 3);
+              // this.setGridArea(3, 3, 11, 4, 3); // OLD: Todo el gimnasio trigger
+              // this.setGridArea(3, 3, 11, 4, 1); // Bloquear edificio del gimnasio
+              // this.setGridArea(7, 6, 3, 1, 3); // Puerta del gimnasio (Tile type 3) - WIDER ENTRANCE
+
+              // NUEVO GIMNASIO (Coordenadas actualizadas: 38,6; 39,6; 40,6)
+              // this.setGridArea(26, 12, 6, 4, 1); // Bloqueo anterior (comentado)
+              this.setGridArea(38, 6, 3, 1, 3); // Puerta en (38,6), (39,6), (40,6)
 
        }
 
@@ -119,7 +129,7 @@ export default class Pueblo extends Phaser.Scene {
                      return false;
               }
 
-              return this.mapGrid[gridY][gridX] === 0; // Solo suelo libre es caminable
+              return this.mapGrid[gridY][gridX] === 0 || this.mapGrid[gridY][gridX] === 2 || this.mapGrid[gridY][gridX] === 3; // Suelo libre y entradas
        }
 
        // Obtener el tipo de celda en una posición
