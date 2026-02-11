@@ -164,9 +164,8 @@ export default class Pueblo extends Phaser.Scene {
                      // Seleccionar pokemon aleatorio de los disponibles (solo los que tienen sprite)
                      // Excluimos a Squirtle y usamos los que tienen nuevos spritesheets
                      const availableKeys = [
-                            'charizard', 'cinderace', 'typhlosion',
-                            'blastoise', 'feraligatr', 'samurott',
-                            'meganium', 'sceptile', 'serperior'
+                            'cinderace', 'blastoise', 'feraligatr',
+                            'meganium', 'sceptile'
                      ];
                      // Filtramos POKEVONES_INICIALES para usar solo estos
                      const validPokemons = Object.values(POKEVONES_INICIALES).filter(p => availableKeys.includes(p.sprite));
