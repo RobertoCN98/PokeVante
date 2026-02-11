@@ -73,13 +73,17 @@ export default class Jugador extends Phaser.Physics.Arcade.Sprite {
             duration: 150, // velocidad del movimiento
             onComplete: () => {
                 this.moving = false;
-                
+
                 // Verificar tipo de celda al llegar
                 const cellType = this.scene.getCellType(this.x, this.y);
                 if (cellType === 2) {
                     console.log("🏥 Entraste al hospital!");
                 } else if (cellType === 3) {
                     console.log("💪 Entraste al gimnasio!");
+                } else if (cellType === 4 && this.scene.checkEncounter) {
+                    // TILE_GRASS (4) triggers encounter check
+                    console.log("🌿 En la hierba alta...");
+                    this.scene.checkEncounter();
                 }
             },
         });

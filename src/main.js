@@ -1,18 +1,23 @@
 import Phaser from "phaser";
 import Pueblo from "./scenes/pueblo.js";
-// token: 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
+import Combate from "./scenes/combate.js";
+
 const config = {
     type: Phaser.AUTO,
-    width: 640,  // ancho del canvas
-    height: 480, // alto del canvas
+    width: 800,  // ancho del canvas
+    height: 600, // alto del canvas
     parent: "game", // id del div donde se incrusta el canvas
+    scale: {
+        mode: Phaser.Scale.FIT, // Ajustar al tamaño de la ventana
+        autoCenter: Phaser.Scale.CENTER_BOTH // Centrar horizontal y verticalmente
+    },
     physics: {
         default: "arcade",
         arcade: {
             debug: false,
         },
     },
-    scene: [Pueblo], // agregamos la escena inicial
+    scene: [Pueblo, Combate],
 };
 
 const game = new Phaser.Game(config);
