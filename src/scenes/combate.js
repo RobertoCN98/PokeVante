@@ -23,7 +23,7 @@ export default class Combate extends Phaser.Scene {
         // Configuración de dimensiones y ajustes visuales para cada Pokemon
         this.SPRITE_CONFIG = {
             "charizard": {
-                frameWidth: 381, frameHeight: 346,
+                frameWidth: 380, frameHeight: 346,
                 scale: 0.8, yOffsetPlayer: 0, yOffsetEnemy: 0
             },
             "cinderace": {
