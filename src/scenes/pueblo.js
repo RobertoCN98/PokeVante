@@ -14,10 +14,10 @@ export default class Pueblo extends Phaser.Scene {
               console.log("PRELOAD PUEBLO");
               this.load.image("mapaPueblo", "assets/map/mapaPrincipal.png");
 
-              // Cargar sprite sheet del jugador
-              this.load.spritesheet("jugador", "assets/sprites/jugador_sprite.png", {
-                     frameWidth: 32,
-                     frameHeight: 32
+              // Cargar sprite sheet con las dimensiones REALES
+              this.load.spritesheet("jugador", "assets/sprites/jugadorPequeño.png", {
+                     frameWidth: 32,  // ← 1120 ÷ 4 frames
+                     frameHeight: 32  // ← Alto completo
               });
        }
 
