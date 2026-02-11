@@ -1,7 +1,8 @@
 import Phaser from "phaser";
+import Pokevon, { POKEVONES_INICIALES } from "./pokevon.js";
 
 export default class Jugador extends Phaser.Physics.Arcade.Sprite {
-    constructor(scene, x, y) {
+    constructor(scene, x, y, party = null) {
         super(scene, x, y, "jugador", 0); // frame 0 = mirando abajo
 
         this.scene = scene;
@@ -11,6 +12,15 @@ export default class Jugador extends Phaser.Physics.Arcade.Sprite {
         this.cellSize = 32;   // tamaño de la celda (debe coincidir con CELL_SIZE)
         this.moving = false;  // bloquea movimiento mientras se anima
         this.direction = 0;   // 0=abajo, 1=derecha, 2=arriba, 3=izquierda
+
+        // Party del jugador
+        if (party) {
+            this.pokemonParty = party;
+        } else {
+            // Inicializar con un pokevon si no existe party
+            this.pokemonParty = [new Pokevon(POKEVONES_INICIALES.charmander)];
+            this.pokemonParty[0].recibirDaño(10); // Dañar un poco para probar curación
+        }
 
         // Teclas W/A/S/D
         this.keys = scene.input.keyboard.addKeys({
@@ -73,11 +83,12 @@ export default class Jugador extends Phaser.Physics.Arcade.Sprite {
             duration: 150, // velocidad del movimiento
             onComplete: () => {
                 this.moving = false;
-                
+
                 // Verificar tipo de celda al llegar
                 const cellType = this.scene.getCellType(this.x, this.y);
                 if (cellType === 2) {
                     console.log("🏥 Entraste al hospital!");
+                    this.scene.scene.start('Hospital', { party: this.pokemonParty, returnX: this.x, returnY: this.y + 32 }); // Return slightly down
                 } else if (cellType === 3) {
                     console.log("💪 Entraste al gimnasio!");
                 }

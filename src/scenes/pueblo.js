@@ -8,10 +8,17 @@ export default class Pueblo extends Phaser.Scene {
               super({ key: "Pueblo" });
        }
 
+       init(data) {
+              console.log("INIT PUEBLO", data);
+              this.startX = data.returnX || 224;
+              this.startY = data.returnY || 224;
+              this.party = data.party || null;
+       }
+
        preload() {
               console.log("PRELOAD PUEBLO");
               this.load.image("mapaPueblo", "assets/map/mapaPrincipal.png");
-              
+
               // Cargar sprite sheet del jugador
               this.load.spritesheet("jugador", "assets/sprites/jugador_sprite.png", {
                      frameWidth: 32,
@@ -20,31 +27,31 @@ export default class Pueblo extends Phaser.Scene {
        }
 
        create() {
-       console.log("CREATE PUEBLO");
+              console.log("CREATE PUEBLO");
 
-       // Añadir la imagen del mapa
-       const mapa = this.add.image(0, 0, "mapaPueblo").setOrigin(0, 0);
+              // Añadir la imagen del mapa
+              const mapa = this.add.image(0, 0, "mapaPueblo").setOrigin(0, 0);
 
-       console.log(`Tamaño del mapa: ${mapa.width}x${mapa.height}`);
+              console.log(`Tamaño del mapa: ${mapa.width}x${mapa.height}`);
 
-       // Inicializar el grid basado en el tamaño del mapa
-       this.initializeGrid(mapa.width, mapa.height);
+              // Inicializar el grid basado en el tamaño del mapa
+              this.initializeGrid(mapa.width, mapa.height);
 
-       // Dibujar el grid de debug
-       this.drawGridDebug();
+              // Dibujar el grid de debug
+              this.drawGridDebug();
 
-       console.log(`Grid creado: ${this.mapGrid[0].length} columnas x ${this.mapGrid.length} filas`);
+              console.log(`Grid creado: ${this.mapGrid[0].length} columnas x ${this.mapGrid.length} filas`);
 
-       // Crear el jugador en una posición inicial
-       this.jugador = new Jugador(this, 32, 32);
+              // Crear el jugador en una posición inicial o la guardada
+              this.jugador = new Jugador(this, this.startX, this.startY, this.party);
 
-       // NUEVO: Configurar la cámara para seguir al jugador
-       this.cameras.main.startFollow(this.jugador);
-       this.cameras.main.setBounds(0, 0, mapa.width, mapa.height);
-       
-       // Opcional: suavizar el movimiento de la cámara
-       this.cameras.main.setLerp(0.1, 0.1);
-}
+              // NUEVO: Configurar la cámara para seguir al jugador
+              this.cameras.main.startFollow(this.jugador);
+              this.cameras.main.setBounds(0, 0, mapa.width, mapa.height);
+
+              // Opcional: suavizar el movimiento de la cámara
+              this.cameras.main.setLerp(0.1, 0.1);
+       }
 
        update() {
               // Actualizar el jugador cada frame
@@ -64,7 +71,7 @@ export default class Pueblo extends Phaser.Scene {
                      this.mapGrid[y] = [];
                      for (let x = 0; x < cols; x++) {
                             // Por defecto todo es suelo libre (0)
-                            this.mapGrid[y][x] = 0;
+                            this.mapGrid[y][x] = 1;
                      }
               }
 
@@ -72,23 +79,23 @@ export default class Pueblo extends Phaser.Scene {
               // Bloquear una zona (paredes, árboles, etc.)
               //setGridArea(startX, startY, width, height, value)
 
-              this.setGridArea(0, 23, 22, 2, 1); // NO TRANSITABLE
-              this.setGridArea(19, 15, 3, 8, 1); // NO TRANSITABLE
-              this.setGridArea(17, 14, 2, 3, 1); // NO TRANSITABLE
-              this.setGridArea(20, 17, 14, 2, 1); // NO TRANSITABLE
-              this.setGridArea(22, 15, 1, 2, 1); // NO TRANSITABLE
-              this.setGridArea(21, 8, 2, 7, 1); // NO TRANSITABLE
-              this.setGridArea(13, 8, 8, 2, 1); // NO TRANSITABLE
-              this.setGridArea(7, 10, 8, 2, 1); // NO TRANSITABLE
-              this.setGridArea(7, 7, 2, 3, 1); // NO TRANSITABLE
-              this.setGridArea(23, 9, 22, 2, 1); // NO TRANSITABLE
-              this.setGridArea(38, 7, 3, 2, 1); // NO TRANSITABLE
-              this.setGridArea(27, 8, 3, 1, 1); // NO TRANSITABLE
+              this.setGridArea(0, 23, 22, 2, 0); // NO TRANSITABLE
+              this.setGridArea(19, 15, 3, 8, 0); // NO TRANSITABLE
+              this.setGridArea(17, 14, 2, 3, 0); // NO TRANSITABLE
+              this.setGridArea(20, 17, 14, 2, 0); // NO TRANSITABLE
+              this.setGridArea(22, 15, 1, 2, 0); // NO TRANSITABLE
+              this.setGridArea(21, 8, 2, 7, 0); // NO TRANSITABLE
+              this.setGridArea(13, 8, 8, 2, 0); // NO TRANSITABLE
+              this.setGridArea(7, 10, 8, 2, 0); // NO TRANSITABLE
+              this.setGridArea(7, 7, 2, 3, 0); // NO TRANSITABLE
+              this.setGridArea(23, 9, 22, 2, 0); // NO TRANSITABLE
+              this.setGridArea(38, 7, 3, 2, 0); // NO TRANSITABLE
+              this.setGridArea(27, 8, 3, 1, 0); // NO TRANSITABLE
               // Entradas a edificios
-              //this.setGridArea(20, 8, 6, 5, 2);
+              this.setGridArea(25, 3, 8, 5, 2); // Hospital Area - assuming this is the trigger
 
               // Zonas de batalla
-              this.setGridArea(3, 3, 11, 4, 3);
+              this.setGridArea(3, 3, 11, 4, 1);
 
        }
 
@@ -119,7 +126,10 @@ export default class Pueblo extends Phaser.Scene {
                      return false;
               }
 
-              return this.mapGrid[gridY][gridX] === 0; // Solo suelo libre es caminable
+              const type = this.mapGrid[gridY][gridX];
+              // 0 = Suelo, 2 = Hospital, 3 = Gym. All walkable (trigger on enter)
+              // 1 = Pared/Bloqueo
+              return type === 0 || type === 2 || type === 3;
        }
 
        // Obtener el tipo de celda en una posición
