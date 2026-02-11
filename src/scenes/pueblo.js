@@ -11,45 +11,98 @@ export default class Pueblo extends Phaser.Scene {
        preload() {
               console.log("PRELOAD PUEBLO");
               this.load.image("mapaPueblo", "assets/map/mapaPrincipal.png");
-              
+
               // Cargar sprite sheet del jugador
-              this.load.spritesheet("jugador", "assets/sprites/jugador_sprite.png", {
-                     frameWidth: 32,
-                     frameHeight: 32
+              // Configuración para 4 frames horizontales (1120 / 4 = 280)
+              this.load.spritesheet("jugador_spritesheet", "assets/sprites/jugadorPequeño.png", {
+                     frameWidth: 280,
+                     frameHeight: 928
               });
        }
 
-       create() {
-       console.log("CREATE PUEBLO");
+       create(data) {
+              console.log("CREATE PUEBLO");
 
-       // Añadir la imagen del mapa
-       const mapa = this.add.image(0, 0, "mapaPueblo").setOrigin(0, 0);
+              // Crear animaciones globales standard (Left=Row1, Right=Row2, Up=Row3, Down=Row0)
+              if (!this.anims.exists("caminar-abajo")) {
+                     this.anims.create({
+                            key: "caminar-abajo",
+                            frames: this.anims.generateFrameNumbers("jugador_spritesheet", { frames: [0, 1, 2, 3] }),
+                            frameRate: 10,
+                            repeat: -1
+                     });
+                     this.anims.create({
+                            key: "caminar-izquierda",
+                            frames: this.anims.generateFrameNumbers("jugador_spritesheet", { frames: [16, 17, 18, 19] }),
+                            frameRate: 10,
+                            repeat: -1
+                     });
+                     this.anims.create({
+                            key: "caminar-derecha",
+                            frames: this.anims.generateFrameNumbers("jugador_spritesheet", { frames: [32, 33, 34, 35] }),
+                            frameRate: 10,
+                            repeat: -1
+                     });
+                     this.anims.create({
+                            key: "caminar-arriba",
+                            frames: this.anims.generateFrameNumbers("jugador_spritesheet", { frames: [48, 49, 50, 51] }),
+                            frameRate: 10,
+                            repeat: -1
+                     });
+              }
 
-       console.log(`Tamaño del mapa: ${mapa.width}x${mapa.height}`);
+              // Añadir la imagen del mapa
+              const mapa = this.add.image(0, 0, "mapaPueblo").setOrigin(0, 0);
 
-       // Inicializar el grid basado en el tamaño del mapa
-       this.initializeGrid(mapa.width, mapa.height);
+              console.log(`Tamaño del mapa: ${mapa.width}x${mapa.height}`);
 
-       // Dibujar el grid de debug
-       this.drawGridDebug();
+              // Inicializar el grid basado en el tamaño del mapa
+              this.initializeGrid(mapa.width, mapa.height);
 
-       console.log(`Grid creado: ${this.mapGrid[0].length} columnas x ${this.mapGrid.length} filas`);
+              // Dibujar el grid de debug
+              this.drawGridDebug();
 
-       // Crear el jugador en una posición inicial
-       this.jugador = new Jugador(this, 32, 32);
+              console.log(`Grid creado: ${this.mapGrid[0].length} columnas x ${this.mapGrid.length} filas`);
 
-       // NUEVO: Configurar la cámara para seguir al jugador
-       this.cameras.main.startFollow(this.jugador);
-       this.cameras.main.setBounds(0, 0, mapa.width, mapa.height);
-       
-       // Opcional: suavizar el movimiento de la cámara
-       this.cameras.main.setLerp(0.1, 0.1);
-}
+              // Determinar posición inicial del jugador
+              let startX = 32;
+              let startY = 32;
+
+              if (data && data.fromCasa) {
+                     if (data.returnX !== undefined && data.returnY !== undefined) {
+                            startX = data.returnX;
+                            startY = data.returnY;
+                     } else {
+                            // Fallback por defecto
+                            startX = 400;
+                            startY = 400;
+                     }
+              }
+
+              // Crear el jugador en una posición inicial
+              this.jugador = new Jugador(this, startX, startY);
+
+              // NUEVO: Configurar la cámara para seguir al jugador
+              this.cameras.main.startFollow(this.jugador);
+              this.cameras.main.setBounds(0, 0, mapa.width, mapa.height);
+
+              // Opcional: suavizar el movimiento de la cámara
+              this.cameras.main.setLerp(0.1, 0.1);
+       }
 
        update() {
               // Actualizar el jugador cada frame
               if (this.jugador) {
                      this.jugador.update();
+
+                     // Verificar si el jugador está en la entrada de la casa
+                     const x = this.jugador.x;
+                     const y = this.jugador.y;
+                     const type = this.getCellType(x, y);
+
+                     if (type === 4) {
+                            this.scene.start("Casa", { entryX: x, entryY: y });
+                     }
               }
        }
 
@@ -72,23 +125,24 @@ export default class Pueblo extends Phaser.Scene {
               // Bloquear una zona (paredes, árboles, etc.)
               //setGridArea(startX, startY, width, height, value)
 
-              this.setGridArea(0, 23, 22, 2, 1); // NO TRANSITABLE
-              this.setGridArea(19, 15, 3, 8, 1); // NO TRANSITABLE
-              this.setGridArea(17, 14, 2, 3, 1); // NO TRANSITABLE
-              this.setGridArea(20, 17, 14, 2, 1); // NO TRANSITABLE
-              this.setGridArea(22, 15, 1, 2, 1); // NO TRANSITABLE
-              this.setGridArea(21, 8, 2, 7, 1); // NO TRANSITABLE
-              this.setGridArea(13, 8, 8, 2, 1); // NO TRANSITABLE
-              this.setGridArea(7, 10, 8, 2, 1); // NO TRANSITABLE
-              this.setGridArea(7, 7, 2, 3, 1); // NO TRANSITABLE
-              this.setGridArea(23, 9, 22, 2, 1); // NO TRANSITABLE
-              this.setGridArea(38, 7, 3, 2, 1); // NO TRANSITABLE
-              this.setGridArea(27, 8, 3, 1, 1); // NO TRANSITABLE
+              // Zonas bloqueadas eliminadas a petición del usuario
+              // (Anteriormente líneas 99-110)
+
+              // Entrada a Casa 2 (Abajo)
+              // Entrada a Casa 2 (Abajo)
+              this.setGridCell(11, 21, 4);
+              this.setGridCell(12, 21, 4);
+              this.setGridCell(11, 22, 4);
+              this.setGridCell(12, 22, 4);
+
               // Entradas a edificios
               //this.setGridArea(20, 8, 6, 5, 2);
 
               // Zonas de batalla
               this.setGridArea(3, 3, 11, 4, 3);
+
+              // Entrada a Casa
+              this.setGridCell(20, 8, 4);
 
        }
 
@@ -119,7 +173,7 @@ export default class Pueblo extends Phaser.Scene {
                      return false;
               }
 
-              return this.mapGrid[gridY][gridX] === 0; // Solo suelo libre es caminable
+              return this.mapGrid[gridY][gridX] === 0 || this.mapGrid[gridY][gridX] === 4; // Suelo libre y entradas son caminables
        }
 
        // Obtener el tipo de celda en una posición
@@ -154,6 +208,10 @@ export default class Pueblo extends Phaser.Scene {
                             }
                             if (value === 3) {
                                    color = 0x800080; // Morado - gimnasio
+                                   alpha = 0.4;
+                            }
+                            if (value === 4) {
+                                   color = 0xffff00; // Amarillo - casa
                                    alpha = 0.4;
                             }
 

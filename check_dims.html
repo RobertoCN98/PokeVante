@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<body>
+<img id="myImg" src="./public/assets/sprites/jugadorPequeño.png" onload="console.log('DIMENSIONS: ' + this.naturalWidth + 'x' + this.naturalHeight)">
+<script>
+    const img = document.getElementById('myImg');
+    if (img.complete) {
+        console.log('DIMENSIONS: ' + img.naturalWidth + 'x' + img.naturalHeight);
+    }
+</script>
+</body>
+</html>

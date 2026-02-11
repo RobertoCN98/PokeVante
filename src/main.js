@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import Pueblo from "./scenes/pueblo.js";
+import Casa from "./scenes/casa.js";
 
 const config = {
     type: Phaser.AUTO,
@@ -12,7 +13,7 @@ const config = {
             debug: false,
         },
     },
-    scene: [Pueblo], // agregamos la escena inicial
+    scene: [Pueblo, Casa], // agregamos la escena inicial
 };
 
 const game = new Phaser.Game(config);
