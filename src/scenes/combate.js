@@ -26,36 +26,24 @@ export default class Combate extends Phaser.Scene {
                 frameWidth: 381, frameHeight: 346,
                 scale: 0.8, yOffsetPlayer: 0, yOffsetEnemy: 0
             },
-            "samurott": {
-                frameWidth: 336, frameHeight: 338,
-                scale: 0.7, yOffsetPlayer: 20, yOffsetEnemy: 20
-            },
-            "serperior": {
-                frameWidth: 393, frameHeight: 403,
-                scale: 0.65, yOffsetPlayer: 10, yOffsetEnemy: 10
-            },
             "cinderace": {
-                frameWidth: 235, frameHeight: 435,
-                scale: 0.6, yOffsetPlayer: 30, yOffsetEnemy: 30
-            },
-            "typhlosion": {
-                frameWidth: 517, frameHeight: 511,
-                scale: 0.5, yOffsetPlayer: 50, yOffsetEnemy: 50
+                frameWidth: 230, frameHeight: 430,
+                scale: 0.6, yOffsetPlayer: 0, yOffsetEnemy: 0
             },
             "blastoise": {
-                frameWidth: 200, frameHeight: 200,
-                scale: 1.1, yOffsetPlayer: 0, yOffsetEnemy: 0
+                frameWidth: 250, frameHeight: 340,
+                scale: 0.7, yOffsetPlayer: 0, yOffsetEnemy: 0
             },
             "feraligatr": {
-                frameWidth: 325, frameHeight: 237,
-                scale: 0.9, yOffsetPlayer: 0, yOffsetEnemy: 0
+                frameWidth: 325, frameHeight: 320,
+                scale: 0.7, yOffsetPlayer: 0, yOffsetEnemy: 0
             },
             "sceptile": {
-                frameWidth: 228, frameHeight: 239,
-                scale: 1.0, yOffsetPlayer: 0, yOffsetEnemy: 0
+                frameWidth: 228, frameHeight: 240,
+                scale: 0.8, yOffsetPlayer: 0, yOffsetEnemy: 0
             },
             "meganium": {
-                frameWidth: 168, frameHeight: 174,
+                frameWidth: 120, frameHeight: 175,
                 scale: 1.3, yOffsetPlayer: 0, yOffsetEnemy: 0
             }
         };
@@ -63,14 +51,17 @@ export default class Combate extends Phaser.Scene {
         // Cargar sprites frontales y traseros usando las dimensiones configuradas
         Object.keys(this.SPRITE_CONFIG).forEach(nombre => {
             const config = this.SPRITE_CONFIG[nombre];
-            // Frontal
-            this.load.spritesheet(nombre, `assets/pokevones/${nombre}.png`, { frameWidth: config.frameWidth, frameHeight: config.frameHeight });
-            // Trasero
-            this.load.spritesheet(`${nombre}ES`, `assets/pokevones/${nombre}ES.png`, { frameWidth: config.frameWidth, frameHeight: config.frameHeight });
-        });
 
-        // Cargar otros si es necesario (legacy)
-        this.load.image("squirtle", "assets/pokevones/squirtle.png");
+            // Dimensiones Frontal (usa frontWidth/Height si existen, sino frameWidth/Height)
+            const fW = config.frontWidth || config.frameWidth;
+            const fH = config.frontHeight || config.frameHeight;
+            this.load.spritesheet(nombre, `assets/pokevones/${nombre}.png`, { frameWidth: fW, frameHeight: fH });
+
+            // Dimensiones Trasero (usa backWidth/Height si existen, sino frameWidth/Height)
+            const bW = config.backWidth || config.frameWidth;
+            const bH = config.backHeight || config.frameHeight;
+            this.load.spritesheet(`${nombre}ES`, `assets/pokevones/${nombre}ES.png`, { frameWidth: bW, frameHeight: bH });
+        });
     }
 
     create() {
@@ -88,7 +79,7 @@ export default class Combate extends Phaser.Scene {
 
             // Configuración por defecto
             let enemyScale = 0.8;
-            let enemyY = 220;
+            let enemyY = 170; // Adjusted UP to center on grass
             const config = this.SPRITE_CONFIG[enemyKey];
 
             if (config) {
@@ -108,7 +99,6 @@ export default class Combate extends Phaser.Scene {
             let backKey = playerKey + "ES";
 
             // Verificar si la textura existe, si no usar la normal
-            // Nota: Para spritesheets, textures.exists funciona igual
             if (!this.textures.exists(backKey)) {
                 console.warn(`Sprite trasero ${backKey} no encontrado, usando frontal.`);
                 backKey = playerKey;
@@ -117,7 +107,7 @@ export default class Combate extends Phaser.Scene {
             console.log("Combate: Creando sprite jugador con key:", backKey);
 
             let playerScale = 0.8;
-            let playerY = 420;
+            let playerY = 320; // Adjusted UP to center on grass
             const pConfig = this.SPRITE_CONFIG[playerKey]; // Usamos la config del pokemon base
 
             if (pConfig) {
@@ -391,7 +381,16 @@ export default class Combate extends Phaser.Scene {
 
     actualizarUIJugador() {
         this.actualizarBarrasVida();
-        this.playerSprite.setTexture(this.currentPokemon.sprite);
+
+        // Calcular la key del sprite trasero correcta
+        let playerKey = this.currentPokemon.sprite.replace('.png', '');
+        let backKey = playerKey + "ES";
+
+        if (!this.textures.exists(backKey)) {
+            backKey = playerKey;
+        }
+
+        this.playerSprite.setTexture(backKey);
     }
 
     verificarOrientacion() {
