@@ -48,7 +48,6 @@ export default class Hospital extends Phaser.Scene {
         this.nurseX = 10;
         this.nurseY = 5;
         this.add.rectangle(this.nurseX * CELL_SIZE, this.nurseY * CELL_SIZE, CELL_SIZE, CELL_SIZE).setOrigin(0, 0);
-        this.add.text(this.nurseX * CELL_SIZE, (this.nurseY - 1) * CELL_SIZE, "Enfermera", { color: "#000", fontSize: "12px" });
 
         // 4. Player
         // Spawn player at bottom center
