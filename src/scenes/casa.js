@@ -55,8 +55,8 @@ export default class Casa extends Phaser.Scene {
 
         // Create player at the center/default spawn
         const centerX = mapa.displayWidth / 2;
-        // Spawn 1 tile above the exit (which is 5 tiles from bottom)
-        const spawnY = mapa.displayHeight - 192;
+        // Spawn 1 tile above the exit (moved further down for more space)
+        const spawnY = mapa.displayHeight - 128;
         this.jugador = new Jugador(this, centerX, spawnY);
 
         // Camera follow
@@ -87,8 +87,8 @@ export default class Casa extends Phaser.Scene {
             this.jugador.update();
 
             // Check if player moves out of bounds at the bottom to trigger exit
-            // Exit trigger moved 5 tiles up from bottom
-            if (this.jugador.y >= this.physics.world.bounds.height - 160) {
+            // Exit trigger closer to bottom for more space
+            if (this.jugador.y >= this.physics.world.bounds.height - 96) {
                 let returnX = 400;
                 let returnY = 400;
 
@@ -105,9 +105,10 @@ export default class Casa extends Phaser.Scene {
             const centerY = this.physics.world.bounds.height / 2;
 
             // Interaction point matches the new table bottom
-            // Table Bottom is centerY + 128
+            // Table moved down 2 tiles + extended 2 tiles (total +128), starts at centerY + 64
+            // Table Bottom is centerY + 64 + 160 = centerY + 224
             const interactionX = centerX;
-            const interactionY = centerY + 128 + 16;
+            const interactionY = centerY + 224 + 16;
 
             const dist = Phaser.Math.Distance.Between(this.jugador.x, this.jugador.y, interactionX, interactionY);
 
@@ -131,14 +132,16 @@ export default class Casa extends Phaser.Scene {
 
         const centerX = width / 2;
         const centerY = height / 2;
-        const spawnY = height - 192;
+        const spawnY = height - 128;
 
-        // Hallway Top: 2 tiles up
-        const hallwayTop = spawnY - 64;
+        // Hallway Top: Create passage between table and hallway
+        // Table ends at centerY + 224, hallway starts lower to create space
+        const hallwayTop = centerY + 288;
 
-        // 1. Table Collision (Unchanged)
+        // 1. Table Collision: Extended 2 more tiles down
+        // New: y starts at centerY + 64, height is 160px (96 + 64)
         if (x > centerX - 128 && x < centerX + 96 &&
-            y > centerY && y < centerY + 128) {
+            y > centerY + 64 && y < centerY + 224) {
             return false;
         }
 
@@ -147,23 +150,40 @@ export default class Casa extends Phaser.Scene {
             // Left Passage Wall: x < centerX - 64
             if (x < centerX - 64) return false;
 
-            // Right Passage Wall: "el de la derecha una casilla mas a la izquierda"
-            // Previous: x > centerX + 64 (+2 tiles)
-            // New: x > centerX + 32 (+1 tile)
-            if (x > centerX + 32) return false;
+            // Right Passage Wall: moved 1 tile right
+            // Previous: x > centerX + 32 (+1 tile)
+            // New: x > centerX + 64 (+2 tiles)
+            if (x > centerX + 64) return false;
         } else {
             // 3. Upper Area Walls
-            // Top Wall: 5 tiles (160px) above table (table top is centerY)
-            if (y < centerY - 160) {
+            // Top Wall: extended 1 tile down
+            if (y < centerY - 96) {
                 return false;
             }
 
-            // Right Wall: 3 tiles (96px) right of table (table right is +96) -> +192
-            if (x > centerX + 192) {
+            // Right Wall: moved 1 tile right (32px)
+            // Previous: x > centerX + 192
+            // New: x > centerX + 224
+            if (x > centerX + 224) {
                 return false;
             }
             // Left Wall: 3 tiles (96px) left of table (table left is -128) -> -224
             if (x < centerX - 224) {
+                return false;
+            }
+
+            // 4. Upper Right Corner (L-shaped)
+            // Vertical part: 2 tiles down from top (64px)
+            // Horizontal part: 6 tiles left from right (192px)
+            const cornerVerticalHeight = 64; // 2 tiles down
+            const cornerHorizontalWidth = 192; // 6 tiles left
+
+            // Right edge of the room
+            const rightEdge = width;
+
+            // Vertical part of corner: from right edge, going left until cornerHorizontalWidth
+            // From top to cornerVerticalHeight down
+            if (x > rightEdge - cornerHorizontalWidth && y < cornerVerticalHeight) {
                 return false;
             }
         }
@@ -180,28 +200,32 @@ export default class Casa extends Phaser.Scene {
         const height = this.physics.world.bounds.height;
         const centerX = width / 2;
         const centerY = height / 2;
-        const spawnY = height - 192;
-        const hallwayTop = spawnY - 64;
+        const spawnY = height - 128;
+        const hallwayTop = centerY + 288;
 
-        // Draw Table
-        graphics.fillRect(centerX - 128, centerY, 224, 128);
+        // Draw Table (moved down 64px, height extended to 160px)
+        graphics.fillRect(centerX - 128, centerY + 64, 224, 160);
 
-        // Draw Upper Right Wall (above Hallway)
-        graphics.fillRect(centerX + 192, 0, width - (centerX + 192), hallwayTop);
+        // Draw Upper Right Wall (above Hallway) - moved 1 tile right
+        graphics.fillRect(centerX + 224, 0, width - (centerX + 224), hallwayTop);
 
         // Draw Upper Left Wall
         graphics.fillRect(0, 0, centerX - 224, hallwayTop);
 
-        // Draw Top Wall
-        graphics.fillRect(0, 0, width, centerY - 160);
+        // Draw Top Wall (extended 1 tile down)
+        graphics.fillRect(0, 0, width, centerY - 96);
+
+        // Draw Upper Right Corner (L-shaped)
+        // Horizontal part: 6 tiles (192px) from right edge, 2 tiles (64px) tall
+        graphics.fillRect(width - 192, 0, 192, 64);
 
         // Draw Hallway Left Wall (Bottom)
         // From x=0 to x=centerX-64
         graphics.fillRect(0, hallwayTop, centerX - 64, height - hallwayTop);
 
-        // Draw Hallway Right Wall (Bottom) -> Updated start
-        // From x=centerX+32 to width
-        graphics.fillRect(centerX + 32, hallwayTop, width - (centerX + 32), height - hallwayTop);
+        // Draw Hallway Right Wall (Bottom) - moved 1 tile right
+        // From x=centerX+64 to width
+        graphics.fillRect(centerX + 64, hallwayTop, width - (centerX + 64), height - hallwayTop);
     }
 
     getCellType(x, y) {
