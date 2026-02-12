@@ -90,7 +90,7 @@ export default class Pueblo extends Phaser.Scene {
               this.setGridArea(27, 8, 3, 1, 1); // NO TRANSITABLE
               // Entradas a edificios
               //this.setGridArea(20, 8, 6, 5, 2);
-
+              this.setGridArea(25, 3, 8, 5, 2);
               // Zonas de batalla
               // this.setGridArea(3, 3, 11, 4, 3); // OLD: Todo el gimnasio trigger
               // this.setGridArea(3, 3, 11, 4, 1); // Bloquear edificio del gimnasio
