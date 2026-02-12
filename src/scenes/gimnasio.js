@@ -33,7 +33,6 @@ export default class Gimnasio extends Phaser.Scene {
         this.bg = this.add.image(0, 0, "bg_gimnasio")
             .setOrigin(0, 0)
             .setDepth(-100); // Fondo muy atrás
-
         // Ajustar al tamaño de la escena (640x480 para que no se vea "ampliada" / cortada)
         this.bg.displayWidth = 640;
         this.bg.displayHeight = 480;
