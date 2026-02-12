@@ -17,7 +17,7 @@ export default class Gimnasio extends Phaser.Scene {
 
         // Cargar sprite sheet del jugador (ya está cargado, pero por si acaso)
         if (!this.textures.exists("jugador")) {
-            this.load.spritesheet("jugador", "assets/sprites/jugadorPequeño_32x32_correcto.png", {
+            this.load.spritesheet("jugador", "assets/sprites/jugadorPequeño.png", {
                 frameWidth: 32,
                 frameHeight: 32
             });
