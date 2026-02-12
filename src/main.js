@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import Pueblo from "./scenes/pueblo.js";
-
+import Hospital from "./scenes/hospital.js";
 import Gimnasio from "./scenes/gimnasio.js";
 
 const config = {
@@ -14,7 +14,7 @@ const config = {
             debug: true,
         },
     },
-    scene: [Pueblo, Gimnasio], // agregamos la escena inicial y el gimnasio
+    scene: [Pueblo, Gimnasio, Hospital], // agregamos la escena inicial y el gimnasio
 };
 
 const game = new Phaser.Game(config);

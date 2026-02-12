@@ -84,6 +84,7 @@ export default class Jugador extends Phaser.Physics.Arcade.Sprite {
 
                 if (cellType === 2) {
                     console.log("🏥 Entraste al hospital!");
+                    this.scene.scene.start('Hospital', { party: this.pokemonParty, returnX: this.x, returnY: this.y + 32 });
                 } else if (cellType === 3) {
                     console.log("💪 Entraste al gimnasio!");
                     this.scene.scene.start("Gimnasio");
