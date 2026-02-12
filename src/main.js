@@ -1,25 +1,20 @@
 import Phaser from "phaser";
 import Pueblo from "./scenes/pueblo.js";
-import Combate from "./scenes/combate.js";
+
 import Gimnasio from "./scenes/gimnasio.js";
-import GameOver from "./scenes/gameover.js";
 
 const config = {
     type: Phaser.AUTO,
-    width: 800,  // ancho del canvas
-    height: 600, // alto del canvas
+    width: 640,  // ancho del canvas
+    height: 480, // alto del canvas
     parent: "game", // id del div donde se incrusta el canvas
-    scale: {
-        mode: Phaser.Scale.FIT, // Ajustar al tamaño de la ventana
-        autoCenter: Phaser.Scale.CENTER_BOTH // Centrar horizontal y verticalmente
-    },
     physics: {
         default: "arcade",
         arcade: {
-            debug: false,
+            debug: true,
         },
     },
-    scene: [Pueblo, Combate, Gimnasio, GameOver], // NUEVO: Añadidas escenas Gimnasio y GameOver
+    scene: [Pueblo, Gimnasio], // agregamos la escena inicial y el gimnasio
 };
 
 const game = new Phaser.Game(config);

@@ -1,10 +1,7 @@
 import Phaser from "phaser";
 import Jugador from "../entities/jugador.js";
-import Pokevon, { POKEVONES_INICIALES } from "../entities/pokevon.js";
 
 const CELL_SIZE = 32; // Tamaño de cada celda en píxeles
-const TILE_GRASS = 4; // Valor para la hierba alta
-const TILE_GYM_ENTRANCE = 5; // Valor para la entrada al gimnasio
 
 export default class Pueblo extends Phaser.Scene {
        constructor() {
@@ -16,13 +13,13 @@ export default class Pueblo extends Phaser.Scene {
               this.load.image("mapaPueblo", "assets/map/mapaPrincipal.png");
 
               // Cargar sprite sheet del jugador
-              this.load.spritesheet("jugador", "assets/sprites/jugadorPequeño.png", {
+              this.load.spritesheet("jugador", "assets/sprites/jugador_sprite.png", {
                      frameWidth: 32,
                      frameHeight: 32
               });
        }
 
-       create() {
+       create(data) {
               console.log("CREATE PUEBLO");
 
               // Añadir la imagen del mapa
@@ -38,39 +35,12 @@ export default class Pueblo extends Phaser.Scene {
 
               console.log(`Grid creado: ${this.mapGrid[0].length} columnas x ${this.mapGrid.length} filas`);
 
-              // Inicializar party del jugador si no existe
-              // Buscamos si ya existe en el registry (persistencia entre escenas)
-              if (!this.registry.get('playerParty')) {
-                     const starter = new Pokevon({ ...POKEVONES_INICIALES.charizard, nivel: 5, esDelJugador: true });
-                     this.registry.set('playerParty', [starter]);
-                     this.playerParty = this.registry.get('playerParty');
-              } else {
-                     this.playerParty = this.registry.get('playerParty');
-              }
+              // Crear el jugador
+              // Si pasamos datos (x, y), usarlos. Si no, posición por defecto (32, 32)
+              const startX = (data && data.x) ? data.x : 32;
+              const startY = (data && data.y) ? data.y : 32;
 
-              // Evento para cuando se resume la escena (volver del combate o gimnasio)
-              this.events.on('resume', (ctx, data) => {
-                     console.log("Regresando a Pueblo...");
-                     if (this.jugador) this.jugador.moving = false;
-                     // Asegurar que input no queda pegado
-                     this.input.keyboard.resetKeys();
-              });
-
-              // Recuperar posición guardada o usar posición inicial
-              const savedPos = this.registry.get('playerPosition') || { x: 128, y: 128 };
-              
-              // Crear el jugador en la posición guardada o inicial
-              this.jugador = new Jugador(this, savedPos.x, savedPos.y);
-
-              // Guardar posición cuando se pausa la escena
-              this.events.on('pause', () => {
-                     if (this.jugador) {
-                            this.registry.set('playerPosition', {
-                                   x: this.jugador.x,
-                                   y: this.jugador.y
-                            });
-                     }
-              });
+              this.jugador = new Jugador(this, startX, startY);
 
               // NUEVO: Configurar la cámara para seguir al jugador
               this.cameras.main.startFollow(this.jugador);
@@ -78,9 +48,6 @@ export default class Pueblo extends Phaser.Scene {
 
               // Opcional: suavizar el movimiento de la cámara
               this.cameras.main.setLerp(0.1, 0.1);
-
-              // Crear controles móviles
-              this.createMobileControls();
        }
 
        update() {
@@ -101,7 +68,7 @@ export default class Pueblo extends Phaser.Scene {
                      this.mapGrid[y] = [];
                      for (let x = 0; x < cols; x++) {
                             // Por defecto todo es suelo libre (0)
-                            this.mapGrid[y][x] = 1;
+                            this.mapGrid[y][x] = 0;
                      }
               }
 
@@ -109,27 +76,30 @@ export default class Pueblo extends Phaser.Scene {
               // Bloquear una zona (paredes, árboles, etc.)
               //setGridArea(startX, startY, width, height, value)
 
-              this.setGridArea(0, 23, 22, 2, 0); // NO TRANSITABLE
-              this.setGridArea(19, 15, 3, 8, 0); // NO TRANSITABLE
-              this.setGridArea(17, 14, 2, 3, 0); // NO TRANSITABLE
-              this.setGridArea(20, 17, 14, 2, 0); // NO TRANSITABLE
-              this.setGridArea(22, 15, 1, 2, 0); // NO TRANSITABLE
-              this.setGridArea(21, 8, 2, 7, 0); // NO TRANSITABLE
-              this.setGridArea(13, 8, 8, 2, 0); // NO TRANSITABLE
-              this.setGridArea(7, 10, 8, 2, 0); // NO TRANSITABLE
-              this.setGridArea(7, 7, 2, 3, 0); // NO TRANSITABLE
-              this.setGridArea(23, 9, 22, 2, 0); // NO TRANSITABLE
-              this.setGridArea(38, 7, 3, 2, 0); // NO TRANSITABLE
-              this.setGridArea(27, 8, 3, 1, 0); // NO TRANSITABLE
-              
-              // Entrada al gimnasio (NUEVO)
-              this.setGridArea(10, 8, 2, 2, TILE_GYM_ENTRANCE); // Entrada gimnasio
+              this.setGridArea(0, 23, 22, 2, 1); // NO TRANSITABLE
+              this.setGridArea(19, 15, 3, 8, 1); // NO TRANSITABLE
+              this.setGridArea(17, 14, 2, 3, 1); // NO TRANSITABLE
+              this.setGridArea(20, 17, 14, 2, 1); // NO TRANSITABLE
+              this.setGridArea(22, 15, 1, 2, 1); // NO TRANSITABLE
+              this.setGridArea(21, 8, 2, 7, 1); // NO TRANSITABLE
+              this.setGridArea(13, 8, 8, 2, 1); // NO TRANSITABLE
+              this.setGridArea(7, 10, 8, 2, 1); // NO TRANSITABLE
+              this.setGridArea(7, 7, 2, 3, 1); // NO TRANSITABLE
+              this.setGridArea(23, 9, 22, 2, 1); // NO TRANSITABLE
+              this.setGridArea(38, 7, 3, 2, 1); // NO TRANSITABLE
+              this.setGridArea(27, 8, 3, 1, 1); // NO TRANSITABLE
+              // Entradas a edificios
+              //this.setGridArea(20, 8, 6, 5, 2);
 
-              // Zonas de batalla (Hierba)
-              // Usamos TILE_GRASS (4) para la zona de hierba
-              this.setGridArea(3, 3, 11, 4, TILE_GRASS);
-              // Usaremos el 5 para el gym
-              this.setGridArea(35, 3, 6, 5, 5);
+              // Zonas de batalla
+              // this.setGridArea(3, 3, 11, 4, 3); // OLD: Todo el gimnasio trigger
+              // this.setGridArea(3, 3, 11, 4, 1); // Bloquear edificio del gimnasio
+              // this.setGridArea(7, 6, 3, 1, 3); // Puerta del gimnasio (Tile type 3) - WIDER ENTRANCE
+
+              // NUEVO GIMNASIO (Coordenadas actualizadas: 38,6; 39,6; 40,6)
+              // this.setGridArea(26, 12, 6, 4, 1); // Bloqueo anterior (comentado)
+              this.setGridArea(38, 6, 3, 1, 3); // Puerta en (38,6), (39,6), (40,6)
+
        }
 
        // Función auxiliar para pintar un área rectangular del grid
@@ -159,9 +129,7 @@ export default class Pueblo extends Phaser.Scene {
                      return false;
               }
 
-              const cellType = this.mapGrid[gridY][gridX];
-              // 1 es bloqueado, 0 es libre, 4 es hierba, 5 es entrada gimnasio (también libre para caminar)
-              return cellType === 0 || cellType === TILE_GRASS || cellType === 2 || cellType === 3 || cellType === TILE_GYM_ENTRANCE;
+              return this.mapGrid[gridY][gridX] === 0 || this.mapGrid[gridY][gridX] === 2 || this.mapGrid[gridY][gridX] === 3; // Suelo libre y entradas
        }
 
        // Obtener el tipo de celda en una posición
@@ -176,192 +144,46 @@ export default class Pueblo extends Phaser.Scene {
               return this.mapGrid[gridY][gridX];
        }
 
-       checkEncounter() {
-              // Probabilidad de encuentro 20%
-              if (Math.random() < 0.2) {
-                     console.log("¡Un Pokemon salvaje ha aparecido!");
-
-                     // Seleccionar pokemon aleatorio de los disponibles (solo los que tienen sprite)
-                     // Excluimos a Squirtle y usamos los que tienen nuevos spritesheets
-                     const availableKeys = [
-                            'charizard', 'cinderace', 'typhlosion',
-                            'blastoise', 'feraligatr', 'samurott',
-                            'meganium', 'sceptile', 'serperior'
-                     ];
-                     // Filtramos POKEVONES_INICIALES para usar solo estos
-                     const validPokemons = Object.values(POKEVONES_INICIALES).filter(p => availableKeys.includes(p.sprite));
-
-                     if (validPokemons.length === 0) {
-                            console.error("No hay pokemons válidos con sprite para encontrar!");
-                            return;
-                     }
-
-                     const randomConfig = validPokemons[Math.floor(Math.random() * validPokemons.length)];
-
-                     // Crear instancia del enemigo
-                     // Nivel aleatorio entre 2 y 5
-                     const enemyLevel = Math.floor(Math.random() * 4) + 2;
-                     const enemyPokemon = new Pokevon({ ...randomConfig, nivel: enemyLevel });
-
-                     // Iniciar combate
-                     this.scene.pause();
-                     this.scene.launch('Combate', {
-                            playerParty: this.playerParty,
-                            enemyPokemon: enemyPokemon
-                     });
-              }
-       }
-
-       enterGym() {
-              console.log("🏛️ Entrando al gimnasio...");
-
-              // Guardar la posición actual para volver aquí al salir
-              this.registry.set('playerPositionBeforeGym', {
-                     x: this.jugador.x,
-                     y: this.jugador.y
-              });
-
-              // Pausar Pueblo
-              this.scene.pause('Pueblo');
-
-              // Lanzar Gimnasio
-              this.scene.launch('Gimnasio');
-       }
-
-       createMobileControls() {
-              // Crear controles virtuales para móvil
-              const buttonSize = 60;
-              const padding = 20;
-              const screenWidth = this.cameras.main.width;
-              const screenHeight = this.cameras.main.height;
-
-              // D-Pad (izquierda inferior)
-              const dpadX = padding + buttonSize;
-              const dpadY = screenHeight - padding - buttonSize;
-
-              // Botón ARRIBA
-              const btnUp = this.add.circle(dpadX, dpadY - buttonSize, buttonSize / 2, 0x4a90e2, 0.7)
-                     .setScrollFactor(0)
-                     .setDepth(10000)
-                     .setInteractive();
-              this.add.text(dpadX, dpadY - buttonSize, "↑", { fontSize: "32px", color: "#fff" })
-                     .setOrigin(0.5)
-                     .setScrollFactor(0)
-                     .setDepth(10001);
-
-              // Botón ABAJO
-              const btnDown = this.add.circle(dpadX, dpadY + buttonSize, buttonSize / 2, 0x4a90e2, 0.7)
-                     .setScrollFactor(0)
-                     .setDepth(10000)
-                     .setInteractive();
-              this.add.text(dpadX, dpadY + buttonSize, "↓", { fontSize: "32px", color: "#fff" })
-                     .setOrigin(0.5)
-                     .setScrollFactor(0)
-                     .setDepth(10001);
-
-              // Botón IZQUIERDA
-              const btnLeft = this.add.circle(dpadX - buttonSize, dpadY, buttonSize / 2, 0x4a90e2, 0.7)
-                     .setScrollFactor(0)
-                     .setDepth(10000)
-                     .setInteractive();
-              this.add.text(dpadX - buttonSize, dpadY, "←", { fontSize: "32px", color: "#fff" })
-                     .setOrigin(0.5)
-                     .setScrollFactor(0)
-                     .setDepth(10001);
-
-              // Botón DERECHA
-              const btnRight = this.add.circle(dpadX + buttonSize, dpadY, buttonSize / 2, 0x4a90e2, 0.7)
-                     .setScrollFactor(0)
-                     .setDepth(10000)
-                     .setInteractive();
-              this.add.text(dpadX + buttonSize, dpadY, "→", { fontSize: "32px", color: "#fff" })
-                     .setOrigin(0.5)
-                     .setScrollFactor(0)
-                     .setDepth(10001);
-
-              // Botón de ACCIÓN (derecha inferior)
-              const btnAction = this.add.circle(
-                     screenWidth - padding - buttonSize,
-                     screenHeight - padding - buttonSize,
-                     buttonSize / 2,
-                     0xe74c3c,
-                     0.7
-              ).setScrollFactor(0)
-                     .setDepth(10000)
-                     .setInteractive();
-              this.add.text(
-                     screenWidth - padding - buttonSize,
-                     screenHeight - padding - buttonSize,
-                     "E",
-                     { fontSize: "32px", color: "#fff", fontStyle: "bold" }
-              ).setOrigin(0.5)
-                     .setScrollFactor(0)
-                     .setDepth(10001);
-
-              // Eventos de los botones
-              btnUp.on('pointerdown', () => {
-                     if (this.jugador) this.jugador.handleMobileInput('up');
-              });
-
-              btnDown.on('pointerdown', () => {
-                     if (this.jugador) this.jugador.handleMobileInput('down');
-              });
-
-              btnLeft.on('pointerdown', () => {
-                     if (this.jugador) this.jugador.handleMobileInput('left');
-              });
-
-              btnRight.on('pointerdown', () => {
-                     if (this.jugador) this.jugador.handleMobileInput('right');
-              });
-
-              btnAction.on('pointerdown', () => {
-                     if (this.jugador) this.jugador.handleMobileInput('action');
-              });
-       }
-
        drawGridDebug() {
               const graphics = this.add.graphics();
-              graphics.setDepth(50); // Cambiar de 1000 a 50 para que no tape al jugador
-              graphics.alpha = 0.5; // Hacerlo semi-transparente globalmente si se desea
+              graphics.setDepth(1000);
 
               for (let y = 0; y < this.mapGrid.length; y++) {
                      for (let x = 0; x < this.mapGrid[y].length; x++) {
                             const value = this.mapGrid[y][x];
                             let color = 0x00ff00; // Verde - suelo libre
-                            let alpha = 0.1;
+                            let alpha = 0.2;
 
                             if (value === 1) {
                                    color = 0xff0000; // Rojo - bloqueado
-                                   alpha = 0.3;
+                                   alpha = 0.4;
                             }
                             if (value === 2) {
                                    color = 0x0000ff; // Azul - hospital
-                                   alpha = 0.3;
+                                   alpha = 0.4;
                             }
                             if (value === 3) {
                                    color = 0x800080; // Morado - gimnasio
-                                   alpha = 0.3;
-                            }
-                            if (value === TILE_GRASS) {
-                                   color = 0x006400; // Verde oscuro - hierba alta
                                    alpha = 0.4;
                             }
-                            if (value === TILE_GYM_ENTRANCE) {
-                                   color = 0xffa500; // Naranja - entrada gimnasio
-                                   alpha = 0.5;
-                            }
 
-                            // Rellenar la celda
-                            if (value !== 0) { // Solo dibujar si no es suelo normal para no saturar
-                                   graphics.fillStyle(color, alpha);
-                                   graphics.fillRect(
-                                          x * CELL_SIZE,
-                                          y * CELL_SIZE,
-                                          CELL_SIZE,
-                                          CELL_SIZE
-                                   );
-                            }
+                            // Dibujar el borde de la celda
+                            graphics.lineStyle(1, color, 0.6);
+                            graphics.strokeRect(
+                                   x * CELL_SIZE,
+                                   y * CELL_SIZE,
+                                   CELL_SIZE,
+                                   CELL_SIZE
+                            );
+
+                            // Rellenar la celda con color semi-transparente
+                            graphics.fillStyle(color, alpha);
+                            graphics.fillRect(
+                                   x * CELL_SIZE,
+                                   y * CELL_SIZE,
+                                   CELL_SIZE,
+                                   CELL_SIZE
+                            );
                      }
               }
        }

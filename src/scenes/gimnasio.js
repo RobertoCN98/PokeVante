@@ -1,10 +1,7 @@
 import Phaser from "phaser";
 import Jugador from "../entities/jugador.js";
-import Pokevon, { POKEVONES_INICIALES } from "../entities/pokevon.js";
 
-const CELL_SIZE = 32; // Tamaño de cada celda en píxeles
-const TILE_GRASS = 4; // Valor para hierba/combate
-const TILE_EXIT = 6; // Valor para la salida del gimnasio
+const CELL_SIZE = 32;
 
 export default class Gimnasio extends Phaser.Scene {
     constructor() {
@@ -17,305 +14,282 @@ export default class Gimnasio extends Phaser.Scene {
 
         // Cargar sprite sheet del jugador (ya está cargado, pero por si acaso)
         if (!this.textures.exists("jugador")) {
-            this.load.spritesheet("jugador", "assets/sprites/jugadorPequeño.png", {
+            this.load.spritesheet("jugador", "assets/sprites/jugadorPequeño_32x32_correcto.png", {
                 frameWidth: 32,
                 frameHeight: 32
             });
         }
     }
 
+
     create() {
         console.log("CREATE GIMNASIO");
 
-        // Añadir la imagen del mapa
-        const mapa = this.add.image(0, 0, "mapaGimnasio").setOrigin(0, 0);
+        // 1. Configurar Grid y Fondo
+        this.rows = 20; // 20 * 32 = 640
+        this.cols = 20; // 20 * 32 = 640
 
-        console.log(`Tamaño del mapa gimnasio: ${mapa.width}x${mapa.height}`);
+        // FONDO DEL GIMNASIO
+        this.bg = this.add.image(0, 0, "bg_gimnasio")
+            .setOrigin(0, 0)
+            .setDepth(-100); // Fondo muy atrás
 
-        // Inicializar el grid basado en el tamaño del mapa
-        this.initializeGrid(mapa.width, mapa.height);
+        // Ajustar al tamaño de la escena (640x480 para que no se vea "ampliada" / cortada)
+        this.bg.displayWidth = 640;
+        this.bg.displayHeight = 480;
 
-        // Dibujar el grid de debug
-        this.drawGridDebug();
-
-        console.log(`Grid gimnasio creado: ${this.mapGrid[0].length} columnas x ${this.mapGrid.length} filas`);
-
-        // Recuperar party del jugador del registry
-        this.playerParty = this.registry.get('playerParty');
-        
-        if (!this.playerParty || this.playerParty.length === 0) {
-            console.error("¡No hay party del jugador!");
-            // Volver a Pueblo si no hay party
-            this.scene.stop("Gimnasio");
-            this.scene.resume("Pueblo");
-            return;
-        }
-
-        // Evento para cuando se resume la escena (volver del combate)
-        this.events.on('resume', (ctx, data) => {
-            console.log("Regresando a Gimnasio...");
-            if (this.jugador) this.jugador.moving = false;
-            this.input.keyboard.resetKeys();
-        });
-
-        // Crear el jugador en la posición de entrada
-        this.jugador = new Jugador(this, 128, 1184); // Cerca de la parte inferior (entrada)
-
-        // Configurar la cámara para seguir al jugador
-        this.cameras.main.startFollow(this.jugador);
-        this.cameras.main.setBounds(0, 0, mapa.width, mapa.height);
-        this.cameras.main.setLerp(0.1, 0.1);
-
-        // Crear controles móviles
-        this.createMobileControls();
-    }
-
-    update() {
-        // Actualizar el jugador cada frame
-        if (this.jugador) {
-            this.jugador.update();
-        }
-    }
-
-    initializeGrid(mapWidth, mapHeight) {
-        // Calcular cuántas celdas hay en el mapa
-        // 832 / 32 = 26 columnas
-        // 1248 / 32 = 39 filas
-        const cols = Math.ceil(mapWidth / CELL_SIZE);
-        const rows = Math.ceil(mapHeight / CELL_SIZE);
-
-        console.log(`Grid: ${cols} columnas x ${rows} filas`);
-
-        // Crear el array 2D del grid
+        // Inicializar Grid
         this.mapGrid = [];
-        for (let y = 0; y < rows; y++) {
+        for (let y = 0; y < this.rows; y++) {
             this.mapGrid[y] = [];
-            for (let x = 0; x < cols; x++) {
-                // Por defecto todo es suelo libre (0)
+            for (let x = 0; x < this.cols; x++) {
+                this.mapGrid[y][x] = 1; // 1 = Caminable
+            }
+        }
+
+        // Definir paredes (Bordes)
+        // Arriba (ahora ocupa 7 filas: 0 a 6)
+        for (let y = 0; y <= 6; y++) {
+            for (let x = 0; x < this.cols; x++) {
+                this.mapGrid[y][x] = 0;
+            }
+        }
+        // Abajo
+        for (let x = 0; x < this.cols; x++) this.mapGrid[this.rows - 1][x] = 0;
+
+        // Izquierda (ahora ocupa 5 columnas: 0, 1, 2, 3, 4)
+        for (let y = 0; y < this.rows; y++) {
+            for (let x = 0; x <= 4; x++) {
                 this.mapGrid[y][x] = 0;
             }
         }
 
-        // Definir la salida (parte inferior del mapa)
-        this.setGridArea(11, 37, 4, 2, TILE_EXIT); // Zona de salida en la parte inferior
-
-        // Definir zona de combates (hierba/entrenadores en el medio)
-        // Colocar en el centro del gimnasio
-        this.setGridArea(8, 8, 10, 12, TILE_GRASS); // Zona de combates en el medio
-    }
-
-    // Función auxiliar para pintar un área rectangular del grid
-    setGridArea(startX, startY, width, height, value) {
-        for (let y = startY; y < startY + height; y++) {
-            for (let x = startX; x < startX + width; x++) {
-                if (this.mapGrid[y] && this.mapGrid[y][x] !== undefined) {
-                    this.mapGrid[y][x] = value;
-                }
+        // Derecha (ahora ocupa 5 columnas: 15, 16, 17, 18, 19)
+        for (let y = 0; y < this.rows; y++) {
+            for (let x = this.cols - 5; x < this.cols; x++) {
+                this.mapGrid[y][x] = 0;
             }
         }
+
+        // Bloquear esquinas inferiores (crear pasillo central)
+        // Izquierda abajo (x=0..7, y=12..19)
+        for (let y = 12; y < this.rows; y++) {
+            for (let x = 0; x <= 7; x++) {
+                this.mapGrid[y][x] = 0;
+            }
+        }
+        // Derecha abajo (x=12..19, y=12..19)
+        for (let y = 12; y < this.rows; y++) {
+            for (let x = 12; x < this.cols; x++) {
+                this.mapGrid[y][x] = 0;
+            }
+        }
+
+        // DIBUJAR GRID DE DEBUG (Al final de create)
+        this.time.delayedCall(100, () => { this.drawGridDebug(); });
+
+        const leaderGridX = 10;
+        const leaderGridY = 7; // Movido 3 casillas abajo (antes 4)
+
+        // Marcar posición del líder como ocupada (Bloqueada)
+        this.mapGrid[leaderGridY][leaderGridX] = 0;
+
+        this.leader = this.physics.add.staticSprite(
+            leaderGridX * CELL_SIZE + 16,
+            leaderGridY * CELL_SIZE + 16,
+            "lidergimnasio"
+        );
+
+        this.leader.setScale(0.15);
+        this.leader.refreshBody();
+        this.leader.setDepth(50); // Líder por encima del fondo
+
+        // 3. Jugador
+        // Iniciar en el centro para asegurar que se ve
+        this.entryX = 10 * CELL_SIZE;
+        this.entryY = 14 * CELL_SIZE;
+        this.jugador = new Jugador(this, this.entryX, this.entryY);
+        console.log(`Jugador creado en: ${this.jugador.x}, ${this.jugador.y}`);
+        this.jugador.setDepth(100); // Jugador por encima de todo
+
+        // Cámara
+        this.cameras.main.startFollow(this.jugador);
+        this.cameras.main.setBounds(0, 0, 640, 480);
+
+        // Estado del diálogo
+        this.dialogueActive = false;
+
+        // Texto de diálogo (oculto inicialmente)
+        this.dialogueBox = this.add.rectangle(320, 400, 600, 100, 0x000000, 0.8)
+            .setScrollFactor(0)
+            .setDepth(1000)
+            .setVisible(false);
+
+        this.dialogueText = this.add.text(40, 360, "", {
+            fontSize: '20px',
+            fill: '#ffffff',
+            wordWrap: { width: 560 }
+        })
+            .setScrollFactor(0)
+            .setDepth(1001)
+            .setVisible(false);
+
+        // Opciones de diálogo (Luchar / Huir)
+        this.optionFight = this.add.text(40, 420, "LUCHAR", {
+            fontSize: '20px',
+            fill: '#ff0000',
+            backgroundColor: '#333333',
+            padding: { x: 10, y: 5 }
+        })
+            .setScrollFactor(0)
+            .setDepth(1002)
+            .setVisible(false)
+            .setInteractive()
+            .on('pointerdown', () => this.startCombat())
+            .on('pointerover', () => this.optionFight.setStyle({ fill: '#ffaaaa' }))
+            .on('pointerout', () => this.optionFight.setStyle({ fill: '#ff0000' }));
+
+        this.optionFlee = this.add.text(200, 420, "HUIR", {
+            fontSize: '20px',
+            fill: '#00ff00',
+            backgroundColor: '#333333',
+            padding: { x: 10, y: 5 }
+        })
+            .setScrollFactor(0)
+            .setDepth(1002)
+            .setVisible(false)
+            .setInteractive()
+            .on('pointerdown', () => this.fleeCombat())
+            .on('pointerover', () => this.optionFlee.setStyle({ fill: '#aaffaa' }))
+            .on('pointerout', () => this.optionFlee.setStyle({ fill: '#00ff00' }));
     }
 
-    // Función para pintar una celda individual
-    setGridCell(x, y, value) {
-        if (this.mapGrid[y] && this.mapGrid[y][x] !== undefined) {
-            this.mapGrid[y][x] = value;
+    update() {
+        if (!this.jugador) return;
+
+        // Si hay diálogo activo, bloqueamos movimiento
+        if (this.dialogueActive) {
+            return;
+        }
+
+        this.jugador.update();
+        this.checkInteraction();
+    }
+
+    checkInteraction() {
+        // Verificar posición grid
+        const gridX = Math.floor(this.jugador.x / CELL_SIZE);
+        const gridY = Math.floor(this.jugador.y / CELL_SIZE);
+
+        // Si toca las casillas de abajo (y=18, ya que 19 es pared), volver al inicio
+        // Si toca las casillas de abajo (y=18, ya que 19 es pared), volver al inicio
+        if (gridY === 18) {
+            console.log("Saliendo del gimnasio...");
+
+            // Volver a la escena del Pueblo, justo debajo de la entrada del gimnasio
+            // Entrada en Pueblo: (39, 6). Salida deseada: (39, 7).
+            this.scene.start("Pueblo", {
+                x: 39 * CELL_SIZE, // 39 * 32
+                y: 7 * CELL_SIZE   // 7 * 32
+            });
+            return;
+        }
+
+        // Líder está en (10, 7). Trigger en (10, 8).
+        if (gridX === 10 && gridY === 8 && !this.dialogueActive && !this.jugador.moving) {
+            this.startDialogue();
         }
     }
 
-    // Verificar si una posición es caminable
+    startDialogue() {
+        this.dialogueActive = true;
+
+        // Detener movimiento del jugador
+        if (this.jugador.body) this.jugador.body.setVelocity(0);
+        this.jugador.moving = true; // Bloquear input
+
+        // Mostrar diálogo y opciones
+        this.dialogueBox.setVisible(true);
+        this.dialogueText.setVisible(true);
+        this.dialogueText.setText("Líder: ¡Bienvenido! ¿Quieres desafiarme?");
+
+        this.optionFight.setVisible(true);
+        this.optionFlee.setVisible(true);
+    }
+
+    startCombat() {
+        console.log("Iniciando combate...");
+        this.scene.start("Combate");
+    }
+
+    fleeCombat() {
+        console.log("Huiste del combate.");
+
+        // Ocultar UI
+        this.dialogueBox.setVisible(false);
+        this.dialogueText.setVisible(false);
+        this.optionFight.setVisible(false);
+        this.optionFlee.setVisible(false);
+
+        // Mover jugador una casilla abajo para evitar re-trigger inmediato
+        const safeY = (8 + 1) * CELL_SIZE; // Posición (10, 9)
+        this.jugador.y = safeY;
+
+        // Reactivar movimiento
+        this.dialogueActive = false;
+        this.jugador.moving = false;
+    }
+
+    // --- Métodos requeridos por Jugador.js ---
+
     isWalkable(x, y) {
         const gridX = Math.floor(x / CELL_SIZE);
         const gridY = Math.floor(y / CELL_SIZE);
 
-        if (!this.mapGrid[gridY] || this.mapGrid[gridY][gridX] === undefined) {
-            return false;
+        if (gridX < 0 || gridX >= this.cols || gridY < 0 || gridY >= this.rows) {
+            return false; // Fuera de límites
         }
 
-        const cellType = this.mapGrid[gridY][gridX];
-        // 0 es libre, 6 es salida, 4 es hierba/combate (también transitables)
-        return cellType === 0 || cellType === TILE_EXIT || cellType === TILE_GRASS;
+        return this.mapGrid[gridY][gridX] === 1;
     }
 
-    // Obtener el tipo de celda en una posición
     getCellType(x, y) {
-        const gridX = Math.floor(x / CELL_SIZE);
-        const gridY = Math.floor(y / CELL_SIZE);
-
-        if (!this.mapGrid[gridY] || this.mapGrid[gridY][gridX] === undefined) {
-            return -1;
-        }
-
-        return this.mapGrid[gridY][gridX];
-    }
-
-    checkEncounter() {
-        // Probabilidad de encuentro 30% (un poco más alta que en Pueblo)
-        if (Math.random() < 0.3) {
-            console.log("¡Un Pokémon del gimnasio apareció!");
-
-            // Pokémon más fuertes para el gimnasio (nivel 8-12)
-            const availableKeys = [
-                'blastoise', 'feraligatr', 'samurott' // Pokémon tipo agua para gimnasio
-            ];
-            
-            const validPokemons = Object.values(POKEVONES_INICIALES).filter(p => availableKeys.includes(p.sprite));
-
-            if (validPokemons.length === 0) {
-                console.error("No hay pokemons válidos con sprite para encontrar!");
-                return;
-            }
-
-            const randomConfig = validPokemons[Math.floor(Math.random() * validPokemons.length)];
-
-            // Nivel aleatorio entre 8 y 12 (más altos que en Pueblo)
-            const enemyLevel = Math.floor(Math.random() * 5) + 8;
-            const enemyPokemon = new Pokevon({ ...randomConfig, nivel: enemyLevel });
-
-            // Iniciar combate
-            this.scene.pause();
-            this.scene.launch('Combate', {
-                playerParty: this.playerParty,
-                enemyPokemon: enemyPokemon,
-                isGymLeader: false // No es líder, es combate normal
-            });
-        }
-    }
-
-    exitGym() {
-        console.log("Saliendo del gimnasio...");
-
-        // Guardar posición del jugador en Pueblo (donde estaba antes de entrar)
-        const savedPos = this.registry.get('playerPositionBeforeGym') || { x: 128, y: 128 };
-
-        // Detener gimnasio
-        this.scene.stop('Gimnasio');
-
-        // Reanudar Pueblo
-        this.scene.resume('Pueblo');
-    }
-
-    createMobileControls() {
-        // Crear controles virtuales para móvil
-        const buttonSize = 60;
-        const padding = 20;
-        const screenWidth = this.cameras.main.width;
-        const screenHeight = this.cameras.main.height;
-
-        // D-Pad (izquierda inferior)
-        const dpadX = padding + buttonSize;
-        const dpadY = screenHeight - padding - buttonSize;
-
-        // Botón ARRIBA
-        const btnUp = this.add.circle(dpadX, dpadY - buttonSize, buttonSize / 2, 0x4a90e2, 0.7)
-            .setScrollFactor(0)
-            .setDepth(10000)
-            .setInteractive();
-        this.add.text(dpadX, dpadY - buttonSize, "↑", { fontSize: "32px", color: "#fff" })
-            .setOrigin(0.5)
-            .setScrollFactor(0)
-            .setDepth(10001);
-
-        // Botón ABAJO
-        const btnDown = this.add.circle(dpadX, dpadY + buttonSize, buttonSize / 2, 0x4a90e2, 0.7)
-            .setScrollFactor(0)
-            .setDepth(10000)
-            .setInteractive();
-        this.add.text(dpadX, dpadY + buttonSize, "↓", { fontSize: "32px", color: "#fff" })
-            .setOrigin(0.5)
-            .setScrollFactor(0)
-            .setDepth(10001);
-
-        // Botón IZQUIERDA
-        const btnLeft = this.add.circle(dpadX - buttonSize, dpadY, buttonSize / 2, 0x4a90e2, 0.7)
-            .setScrollFactor(0)
-            .setDepth(10000)
-            .setInteractive();
-        this.add.text(dpadX - buttonSize, dpadY, "←", { fontSize: "32px", color: "#fff" })
-            .setOrigin(0.5)
-            .setScrollFactor(0)
-            .setDepth(10001);
-
-        // Botón DERECHA
-        const btnRight = this.add.circle(dpadX + buttonSize, dpadY, buttonSize / 2, 0x4a90e2, 0.7)
-            .setScrollFactor(0)
-            .setDepth(10000)
-            .setInteractive();
-        this.add.text(dpadX + buttonSize, dpadY, "→", { fontSize: "32px", color: "#fff" })
-            .setOrigin(0.5)
-            .setScrollFactor(0)
-            .setDepth(10001);
-
-        // Botón de ACCIÓN (derecha inferior)
-        const btnAction = this.add.circle(
-            screenWidth - padding - buttonSize,
-            screenHeight - padding - buttonSize,
-            buttonSize / 2,
-            0xe74c3c,
-            0.7
-        ).setScrollFactor(0)
-            .setDepth(10000)
-            .setInteractive();
-        this.add.text(
-            screenWidth - padding - buttonSize,
-            screenHeight - padding - buttonSize,
-            "E",
-            { fontSize: "32px", color: "#fff", fontStyle: "bold" }
-        ).setOrigin(0.5)
-            .setScrollFactor(0)
-            .setDepth(10001);
-
-        // Eventos de los botones
-        btnUp.on('pointerdown', () => {
-            if (this.jugador) this.jugador.handleMobileInput('up');
-        });
-
-        btnDown.on('pointerdown', () => {
-            if (this.jugador) this.jugador.handleMobileInput('down');
-        });
-
-        btnLeft.on('pointerdown', () => {
-            if (this.jugador) this.jugador.handleMobileInput('left');
-        });
-
-        btnRight.on('pointerdown', () => {
-            if (this.jugador) this.jugador.handleMobileInput('right');
-        });
-
-        btnAction.on('pointerdown', () => {
-            if (this.jugador) this.jugador.handleMobileInput('action');
-        });
+        // Retorna tipo de celda (0 suelo, etc.), no necesitamos lógica compleja aquí por ahora
+        return 0;
     }
 
     drawGridDebug() {
         const graphics = this.add.graphics();
-        graphics.setDepth(50); // Cambiar de 1000 a 50 para que no tape al jugador
-        graphics.alpha = 0.5;
+        graphics.setDepth(1000);
 
         for (let y = 0; y < this.mapGrid.length; y++) {
             for (let x = 0; x < this.mapGrid[y].length; x++) {
                 const value = this.mapGrid[y][x];
                 let color = 0x00ff00; // Verde - suelo libre
-                let alpha = 0.1;
+                let alpha = 0.2;
 
-                if (value === TILE_EXIT) {
-                    color = 0xffff00; // Amarillo - salida
+                if (value === 0) {
+                    color = 0xff0000; // Rojo - bloqueado (paredes/lider)
                     alpha = 0.4;
                 }
-                if (value === TILE_GRASS) {
-                    color = 0x006400; // Verde oscuro - zona de combate
-                    alpha = 0.5;
-                }
 
-                // Rellenar la celda
-                if (value !== 0) {
-                    graphics.fillStyle(color, alpha);
-                    graphics.fillRect(
-                        x * CELL_SIZE,
-                        y * CELL_SIZE,
-                        CELL_SIZE,
-                        CELL_SIZE
-                    );
-                }
+                // Dibujar el borde de la celda
+                graphics.lineStyle(1, color, 0.6);
+                graphics.strokeRect(
+                    x * CELL_SIZE,
+                    y * CELL_SIZE,
+                    CELL_SIZE,
+                    CELL_SIZE
+                );
+
+                // Rellenar la celda con color semi-transparente
+                graphics.fillStyle(color, alpha);
+                graphics.fillRect(
+                    x * CELL_SIZE,
+                    y * CELL_SIZE,
+                    CELL_SIZE,
+                    CELL_SIZE
+                );
             }
         }
     }
