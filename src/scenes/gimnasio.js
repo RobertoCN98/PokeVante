@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import Jugador from "../entities/jugador.js";
+import Pokevon, { POKEVONES_INICIALES } from "../entities/pokevon.js";
 
 const CELL_SIZE = 32;
 
@@ -219,7 +220,32 @@ export default class Gimnasio extends Phaser.Scene {
 
     startCombat() {
         console.log("Iniciando combate...");
-        this.scene.start("Combate");
+
+        // Obtener el equipo del jugador del registro
+        const playerParty = this.registry.get('playerParty') || [];
+
+        if (playerParty.length === 0) {
+            console.error("¡No hay Pokémon en tu equipo!");
+            this.dialogueText.setText("No tienes ningún Pokémon. Visita tu casa primero.");
+            return;
+        }
+
+        // Crear el Pokémon del líder del gimnasio basado en Charizard nivel 10
+        const leaderPokemonConfig = {
+            ...POKEVONES_INICIALES.charizard,
+            nivel: 10,
+            esDelJugador: false
+        };
+
+        const leaderPokemon = new Pokevon(leaderPokemonConfig);
+
+        // Pausar esta escena y lanzar la de combate con los datos
+        this.scene.pause();
+        this.scene.start("Combate", {
+            playerParty: playerParty,
+            enemyPokemon: leaderPokemon,
+            isGymLeader: true
+        });
     }
 
     fleeCombat() {
