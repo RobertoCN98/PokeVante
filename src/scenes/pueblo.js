@@ -4,6 +4,7 @@ import Pokevon, { POKEVONES_INICIALES } from "../entities/pokevon.js";
 
 const CELL_SIZE = 32; // Tamaño de cada celda en píxeles
 const TILE_GRASS = 4; // Valor para la hierba alta
+const TILE_GYM_ENTRANCE = 5; // Valor para la entrada al gimnasio
 
 export default class Pueblo extends Phaser.Scene {
        constructor() {
@@ -14,10 +15,10 @@ export default class Pueblo extends Phaser.Scene {
               console.log("PRELOAD PUEBLO");
               this.load.image("mapaPueblo", "assets/map/mapaPrincipal.png");
 
-              // Cargar sprite sheet con las dimensiones REALES
+              // Cargar sprite sheet del jugador
               this.load.spritesheet("jugador", "assets/sprites/jugadorPequeño.png", {
-                     frameWidth: 32,  // ← 1120 ÷ 4 frames
-                     frameHeight: 32  // ← Alto completo
+                     frameWidth: 32,
+                     frameHeight: 32
               });
        }
 
@@ -47,7 +48,7 @@ export default class Pueblo extends Phaser.Scene {
                      this.playerParty = this.registry.get('playerParty');
               }
 
-              // Evento para cuando se resume la escena (volver del combate)
+              // Evento para cuando se resume la escena (volver del combate o gimnasio)
               this.events.on('resume', (ctx, data) => {
                      console.log("Regresando a Pueblo...");
                      if (this.jugador) this.jugador.moving = false;
@@ -55,8 +56,21 @@ export default class Pueblo extends Phaser.Scene {
                      this.input.keyboard.resetKeys();
               });
 
-              // Crear el jugador en una posición inicial
-              this.jugador = new Jugador(this, 128, 128);
+              // Recuperar posición guardada o usar posición inicial
+              const savedPos = this.registry.get('playerPosition') || { x: 128, y: 128 };
+              
+              // Crear el jugador en la posición guardada o inicial
+              this.jugador = new Jugador(this, savedPos.x, savedPos.y);
+
+              // Guardar posición cuando se pausa la escena
+              this.events.on('pause', () => {
+                     if (this.jugador) {
+                            this.registry.set('playerPosition', {
+                                   x: this.jugador.x,
+                                   y: this.jugador.y
+                            });
+                     }
+              });
 
               // NUEVO: Configurar la cámara para seguir al jugador
               this.cameras.main.startFollow(this.jugador);
@@ -64,6 +78,9 @@ export default class Pueblo extends Phaser.Scene {
 
               // Opcional: suavizar el movimiento de la cámara
               this.cameras.main.setLerp(0.1, 0.1);
+
+              // Crear controles móviles
+              this.createMobileControls();
        }
 
        update() {
@@ -104,12 +121,15 @@ export default class Pueblo extends Phaser.Scene {
               this.setGridArea(23, 9, 22, 2, 0); // NO TRANSITABLE
               this.setGridArea(38, 7, 3, 2, 0); // NO TRANSITABLE
               this.setGridArea(27, 8, 3, 1, 0); // NO TRANSITABLE
-              // Entradas a edificios
-              //this.setGridArea(20, 8, 6, 5, 2);
+              
+              // Entrada al gimnasio (NUEVO)
+              this.setGridArea(10, 8, 2, 2, TILE_GYM_ENTRANCE); // Entrada gimnasio
 
               // Zonas de batalla (Hierba)
               // Usamos TILE_GRASS (4) para la zona de hierba
               this.setGridArea(3, 3, 11, 4, TILE_GRASS);
+              // Usaremos el 5 para el gym
+              this.setGridArea(35, 3, 6, 5, 5);
        }
 
        // Función auxiliar para pintar un área rectangular del grid
@@ -140,8 +160,8 @@ export default class Pueblo extends Phaser.Scene {
               }
 
               const cellType = this.mapGrid[gridY][gridX];
-              // 1 es bloqueado, 0 es libre, 4 es hierba (también libre para caminar)
-              return cellType === 0 || cellType === TILE_GRASS || cellType === 2 || cellType === 3;
+              // 1 es bloqueado, 0 es libre, 4 es hierba, 5 es entrada gimnasio (también libre para caminar)
+              return cellType === 0 || cellType === TILE_GRASS || cellType === 2 || cellType === 3 || cellType === TILE_GYM_ENTRANCE;
        }
 
        // Obtener el tipo de celda en una posición
@@ -164,8 +184,9 @@ export default class Pueblo extends Phaser.Scene {
                      // Seleccionar pokemon aleatorio de los disponibles (solo los que tienen sprite)
                      // Excluimos a Squirtle y usamos los que tienen nuevos spritesheets
                      const availableKeys = [
-                            'cinderace', 'blastoise', 'feraligatr',
-                            'meganium', 'sceptile'
+                            'charizard', 'cinderace', 'typhlosion',
+                            'blastoise', 'feraligatr', 'samurott',
+                            'meganium', 'sceptile', 'serperior'
                      ];
                      // Filtramos POKEVONES_INICIALES para usar solo estos
                      const validPokemons = Object.values(POKEVONES_INICIALES).filter(p => availableKeys.includes(p.sprite));
@@ -191,9 +212,117 @@ export default class Pueblo extends Phaser.Scene {
               }
        }
 
+       enterGym() {
+              console.log("🏛️ Entrando al gimnasio...");
+
+              // Guardar la posición actual para volver aquí al salir
+              this.registry.set('playerPositionBeforeGym', {
+                     x: this.jugador.x,
+                     y: this.jugador.y
+              });
+
+              // Pausar Pueblo
+              this.scene.pause('Pueblo');
+
+              // Lanzar Gimnasio
+              this.scene.launch('Gimnasio');
+       }
+
+       createMobileControls() {
+              // Crear controles virtuales para móvil
+              const buttonSize = 60;
+              const padding = 20;
+              const screenWidth = this.cameras.main.width;
+              const screenHeight = this.cameras.main.height;
+
+              // D-Pad (izquierda inferior)
+              const dpadX = padding + buttonSize;
+              const dpadY = screenHeight - padding - buttonSize;
+
+              // Botón ARRIBA
+              const btnUp = this.add.circle(dpadX, dpadY - buttonSize, buttonSize / 2, 0x4a90e2, 0.7)
+                     .setScrollFactor(0)
+                     .setDepth(10000)
+                     .setInteractive();
+              this.add.text(dpadX, dpadY - buttonSize, "↑", { fontSize: "32px", color: "#fff" })
+                     .setOrigin(0.5)
+                     .setScrollFactor(0)
+                     .setDepth(10001);
+
+              // Botón ABAJO
+              const btnDown = this.add.circle(dpadX, dpadY + buttonSize, buttonSize / 2, 0x4a90e2, 0.7)
+                     .setScrollFactor(0)
+                     .setDepth(10000)
+                     .setInteractive();
+              this.add.text(dpadX, dpadY + buttonSize, "↓", { fontSize: "32px", color: "#fff" })
+                     .setOrigin(0.5)
+                     .setScrollFactor(0)
+                     .setDepth(10001);
+
+              // Botón IZQUIERDA
+              const btnLeft = this.add.circle(dpadX - buttonSize, dpadY, buttonSize / 2, 0x4a90e2, 0.7)
+                     .setScrollFactor(0)
+                     .setDepth(10000)
+                     .setInteractive();
+              this.add.text(dpadX - buttonSize, dpadY, "←", { fontSize: "32px", color: "#fff" })
+                     .setOrigin(0.5)
+                     .setScrollFactor(0)
+                     .setDepth(10001);
+
+              // Botón DERECHA
+              const btnRight = this.add.circle(dpadX + buttonSize, dpadY, buttonSize / 2, 0x4a90e2, 0.7)
+                     .setScrollFactor(0)
+                     .setDepth(10000)
+                     .setInteractive();
+              this.add.text(dpadX + buttonSize, dpadY, "→", { fontSize: "32px", color: "#fff" })
+                     .setOrigin(0.5)
+                     .setScrollFactor(0)
+                     .setDepth(10001);
+
+              // Botón de ACCIÓN (derecha inferior)
+              const btnAction = this.add.circle(
+                     screenWidth - padding - buttonSize,
+                     screenHeight - padding - buttonSize,
+                     buttonSize / 2,
+                     0xe74c3c,
+                     0.7
+              ).setScrollFactor(0)
+                     .setDepth(10000)
+                     .setInteractive();
+              this.add.text(
+                     screenWidth - padding - buttonSize,
+                     screenHeight - padding - buttonSize,
+                     "E",
+                     { fontSize: "32px", color: "#fff", fontStyle: "bold" }
+              ).setOrigin(0.5)
+                     .setScrollFactor(0)
+                     .setDepth(10001);
+
+              // Eventos de los botones
+              btnUp.on('pointerdown', () => {
+                     if (this.jugador) this.jugador.handleMobileInput('up');
+              });
+
+              btnDown.on('pointerdown', () => {
+                     if (this.jugador) this.jugador.handleMobileInput('down');
+              });
+
+              btnLeft.on('pointerdown', () => {
+                     if (this.jugador) this.jugador.handleMobileInput('left');
+              });
+
+              btnRight.on('pointerdown', () => {
+                     if (this.jugador) this.jugador.handleMobileInput('right');
+              });
+
+              btnAction.on('pointerdown', () => {
+                     if (this.jugador) this.jugador.handleMobileInput('action');
+              });
+       }
+
        drawGridDebug() {
               const graphics = this.add.graphics();
-              graphics.setDepth(1000);
+              graphics.setDepth(50); // Cambiar de 1000 a 50 para que no tape al jugador
               graphics.alpha = 0.5; // Hacerlo semi-transparente globalmente si se desea
 
               for (let y = 0; y < this.mapGrid.length; y++) {
@@ -218,15 +347,10 @@ export default class Pueblo extends Phaser.Scene {
                                    color = 0x006400; // Verde oscuro - hierba alta
                                    alpha = 0.4;
                             }
-
-                            // Dibujar el borde de la celda
-                            // graphics.lineStyle(1, color, 0.6);
-                            // graphics.strokeRect(
-                            //        x * CELL_SIZE,
-                            //        y * CELL_SIZE,
-                            //        CELL_SIZE,
-                            //        CELL_SIZE
-                            // );
+                            if (value === TILE_GYM_ENTRANCE) {
+                                   color = 0xffa500; // Naranja - entrada gimnasio
+                                   alpha = 0.5;
+                            }
 
                             // Rellenar la celda
                             if (value !== 0) { // Solo dibujar si no es suelo normal para no saturar

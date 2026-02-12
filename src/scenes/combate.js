@@ -11,8 +11,10 @@ export default class Combate extends Phaser.Scene {
         }
         this.playerParty = data.playerParty;
         this.enemyPokemon = data.enemyPokemon;
+        this.isGymLeader = data.isGymLeader || false; // NUEVO: Detectar si es líder de gimnasio
         this.currentPokemon = this.playerParty[0];
         console.log("Combate: Datos cargados. Jugador:", this.currentPokemon, "Enemigo:", this.enemyPokemon);
+        console.log("Combate: ¿Es líder de gimnasio?:", this.isGymLeader);
     }
 
     preload() {
@@ -147,7 +149,11 @@ export default class Combate extends Phaser.Scene {
             this.crearMenuPrincipal();
 
             // Log de batalla (Texto abajo a la izquierda)
-            this.logText = this.add.text(30, 470, `¡Un ${this.enemyPokemon.nombre} salvaje apareció!`, {
+            const mensajeInicial = this.isGymLeader 
+                ? `¡El líder del gimnasio te desafía con ${this.enemyPokemon.nombre}!`
+                : `¡Un ${this.enemyPokemon.nombre} salvaje apareció!`;
+            
+            this.logText = this.add.text(30, 470, mensajeInicial, {
                 fontSize: '24px',
                 fill: '#ffffff',
                 wordWrap: { width: 450 }
@@ -326,7 +332,7 @@ export default class Combate extends Phaser.Scene {
                 // Calculamos porcentaje de daño para descripción
                 const percent = (resultado.dañoInfligido / this.enemyPokemon.vidaMax) * 100;
                 if (percent > 50) this.logText.setText("¡Es muy eficaz!");
-                else this.logText.setText(`¡ ${this.enemyPokemon.nombre} recibe daño!`);
+                else this.logText.setText(`¡${this.enemyPokemon.nombre} recibe daño!`);
 
                 if (this.enemyPokemon.debilitado) {
                     this.time.delayedCall(1000, () => {
@@ -364,7 +370,8 @@ export default class Combate extends Phaser.Scene {
                         if (quedanVivos) {
                             this.time.delayedCall(2000, () => this.cambiarPokemon(true));
                         } else {
-                            this.time.delayedCall(2000, () => this.salirCombate(false));
+                            // NUEVO: Game Over - Todos los Pokémon debilitados
+                            this.time.delayedCall(2000, () => this.triggerGameOver());
                         }
                     });
                 } else {
@@ -372,6 +379,24 @@ export default class Combate extends Phaser.Scene {
                     this.logText.setText(`¿Qué hará ${this.currentPokemon.nombre}?`);
                 }
             }
+        });
+    }
+
+    // NUEVO: Método para activar Game Over
+    triggerGameOver() {
+        console.log("💀 GAME OVER - Todos los Pokémon han sido debilitados");
+        this.logText.setText("¡Todos tus Pokémon se debilitaron!");
+        
+        this.time.delayedCall(2000, () => {
+            // Detener combate
+            this.scene.stop('Combate');
+            
+            // Detener otras escenas activas
+            if (this.scene.isActive('Pueblo')) this.scene.stop('Pueblo');
+            if (this.scene.isActive('Gimnasio')) this.scene.stop('Gimnasio');
+            
+            // Lanzar Game Over
+            this.scene.start('GameOver');
         });
     }
 
@@ -460,12 +485,26 @@ export default class Combate extends Phaser.Scene {
     }
 
     salirCombate(victoria) {
+        console.log("Saliendo del combate. Victoria:", victoria, "Líder:", this.isGymLeader);
+        
         this.scene.stop('Combate');
+        
+        // Verificar si estábamos en Gimnasio o Pueblo
+        const gimnasio = this.scene.get('Gimnasio');
         const pueblo = this.scene.get('Pueblo');
-        if (pueblo) {
+        
+        if (gimnasio && this.scene.isPaused('Gimnasio')) {
+            // Volver al gimnasio
+            this.scene.resume('Gimnasio', {
+                victory: victoria,
+                isGymLeader: this.isGymLeader
+            });
+        } else if (pueblo) {
+            // Volver a Pueblo
             this.scene.resume('Pueblo');
             pueblo.events.emit('resume');
         } else {
+            // Por si acaso, iniciar Pueblo
             this.scene.start('Pueblo');
         }
     }

@@ -23,8 +23,17 @@ export default class Jugador extends Phaser.Physics.Arcade.Sprite {
         // Ajuste del cuerpo para Phaser Arcade
         this.body.setSize(28, 28); // Ajustar hitbox más pequeña que el sprite
         this.body.setOffset(2, 2);
-        this.setOrigin(0, 0); // alineación top-left para que cuadre con el grid
-        this.setDepth(100); // Asegurar que se dibuje sobre el mapa
+        this.setOrigin(0.5, 1); // Centrado horizontal, pie abajo
+        this.setDepth(100); // Asegurar que se dibuja sobre el mapa
+
+        // Variable para controles móviles
+        this.mobileInput = null;
+    }
+
+    // Método para manejar input desde botones móviles
+    handleMobileInput(direction) {
+        if (this.moving) return;
+        this.mobileInput = direction;
     }
 
     update() {
@@ -33,22 +42,50 @@ export default class Jugador extends Phaser.Physics.Arcade.Sprite {
         let targetX = this.x;
         let targetY = this.y;
         let newDirection = this.direction;
+        let inputDetected = false;
 
-        // Detectar tecla presionada y calcular nueva posición
-        if (Phaser.Input.Keyboard.JustDown(this.keys.left)) {
+        // Detectar input móvil primero
+        if (this.mobileInput) {
+            inputDetected = true;
+            if (this.mobileInput === 'left') {
+                targetX -= this.cellSize;
+                newDirection = 3;
+            } else if (this.mobileInput === 'right') {
+                targetX += this.cellSize;
+                newDirection = 1;
+            } else if (this.mobileInput === 'up') {
+                targetY -= this.cellSize;
+                newDirection = 2;
+            } else if (this.mobileInput === 'down') {
+                targetY += this.cellSize;
+                newDirection = 0;
+            } else if (this.mobileInput === 'action') {
+                // Botón E - por ahora no hace nada
+                console.log("Botón de acción presionado");
+            }
+            this.mobileInput = null; // Resetear input móvil
+        } 
+        // Si no hay input móvil, detectar teclas
+        else if (Phaser.Input.Keyboard.JustDown(this.keys.left)) {
+            inputDetected = true;
             targetX -= this.cellSize;
             newDirection = 3; // izquierda
         } else if (Phaser.Input.Keyboard.JustDown(this.keys.right)) {
+            inputDetected = true;
             targetX += this.cellSize;
             newDirection = 1; // derecha
         } else if (Phaser.Input.Keyboard.JustDown(this.keys.up)) {
+            inputDetected = true;
             targetY -= this.cellSize;
             newDirection = 2; // arriba
         } else if (Phaser.Input.Keyboard.JustDown(this.keys.down)) {
+            inputDetected = true;
             targetY += this.cellSize;
             newDirection = 0; // abajo
-        } else {
-            return; // No se presionó ninguna tecla
+        }
+
+        if (!inputDetected) {
+            return; // No se presionó ninguna tecla ni botón
         }
 
         // Cambiar el frame según la dirección
@@ -76,6 +113,7 @@ export default class Jugador extends Phaser.Physics.Arcade.Sprite {
 
                 // Verificar tipo de celda al llegar
                 const cellType = this.scene.getCellType(this.x, this.y);
+                
                 if (cellType === 2) {
                     console.log("🏥 Entraste al hospital!");
                 } else if (cellType === 3) {
@@ -84,6 +122,14 @@ export default class Jugador extends Phaser.Physics.Arcade.Sprite {
                     // TILE_GRASS (4) triggers encounter check
                     console.log("🌿 En la hierba alta...");
                     this.scene.checkEncounter();
+                } else if (cellType === 5 && this.scene.enterGym) {
+                    // TILE_GYM_ENTRANCE (5) - Entrada al gimnasio
+                    console.log("🏛️ Entrada al gimnasio detectada!");
+                    this.scene.enterGym();
+                } else if (cellType === 6 && this.scene.exitGym) {
+                    // TILE_EXIT (6) - Salida del gimnasio
+                    console.log("🚪 Salida del gimnasio detectada!");
+                    this.scene.exitGym();
                 }
             },
         });

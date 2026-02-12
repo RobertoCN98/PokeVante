@@ -1,6 +1,8 @@
 import Phaser from "phaser";
 import Pueblo from "./scenes/pueblo.js";
 import Combate from "./scenes/combate.js";
+import Gimnasio from "./scenes/gimnasio.js";
+import GameOver from "./scenes/gameover.js";
 
 const config = {
     type: Phaser.AUTO,
@@ -17,7 +19,7 @@ const config = {
             debug: false,
         },
     },
-    scene: [Pueblo, Combate],
+    scene: [Pueblo, Combate, Gimnasio, GameOver], // NUEVO: Añadidas escenas Gimnasio y GameOver
 };
 
 const game = new Phaser.Game(config);
