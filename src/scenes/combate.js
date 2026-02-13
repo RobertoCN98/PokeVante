@@ -492,6 +492,12 @@ export default class Combate extends Phaser.Scene {
 
         this.scene.stop('Combate');
 
+        // Si ganamos al líder del gimnasio, ir a la escena de Victoria
+        if (victoria && this.isGymLeader) {
+            this.scene.start('Victoria');
+            return;
+        }
+
         // Verificar si estábamos en Gimnasio o Pueblo
         const gimnasio = this.scene.get('Gimnasio');
         const pueblo = this.scene.get('Pueblo');

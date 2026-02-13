@@ -4,6 +4,7 @@ import Hospital from "./scenes/hospital.js";
 import Gimnasio from "./scenes/gimnasio.js";
 import GameOver from "./scenes/gameover.js";
 import Combate from "./scenes/combate.js";
+import Victoria from "./scenes/victoria.js";
 
 const config = {
     type: Phaser.AUTO,
@@ -20,7 +21,7 @@ const config = {
             debug: true,
         },
     },
-    scene: [Pueblo, Gimnasio, Hospital, Combate, GameOver],
+    scene: [Pueblo, Gimnasio, Hospital, Combate, GameOver, Victoria],
 };
 
 const game = new Phaser.Game(config);

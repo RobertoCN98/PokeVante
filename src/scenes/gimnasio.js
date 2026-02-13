@@ -11,7 +11,8 @@ export default class Gimnasio extends Phaser.Scene {
 
     preload() {
         console.log("PRELOAD GIMNASIO");
-        this.load.image("mapaGimnasio", "assets/map/gym.png");
+        this.load.image("mapaGimnasio", "assets/map/gimnasio_pokemon.jpg");
+        this.load.image("liderpokemon", "assets/map/liderpokemon.png");
 
         // Cargar sprite sheet del jugador (ya está cargado, pero por si acaso)
         if (!this.textures.exists("jugador")) {
@@ -31,7 +32,7 @@ export default class Gimnasio extends Phaser.Scene {
         this.cols = 20; // 20 * 32 = 640
 
         // FONDO DEL GIMNASIO
-        this.bg = this.add.image(0, 0, "bg_gimnasio")
+        this.bg = this.add.image(0, 0, "mapaGimnasio")
             .setOrigin(0, 0)
             .setDepth(-100); // Fondo muy atrás
         // Ajustar al tamaño de la escena (640x480 para que no se vea "ampliada" / cortada)
@@ -94,7 +95,7 @@ export default class Gimnasio extends Phaser.Scene {
         this.leader = this.physics.add.staticSprite(
             leaderGridX * CELL_SIZE + 16,
             leaderGridY * CELL_SIZE + 16,
-            "lidergimnasio"
+            "liderpokemon"
         );
 
         this.leader.setScale(0.15);
